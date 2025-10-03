@@ -65,12 +65,7 @@ unsigned long hapticDuration = 100; // milliseconds
 #define SHORT_PULSE_DURATION 100   // milliseconds for short pulse (.)
 #define LONG_PULSE_DURATION 300    // milliseconds for long pulse (-)
 #define PAUSE_BETWEEN_PULSES 150   // milliseconds between pulses in pattern
-#define PATTERN_TIMEOUT 2000       // milliseconds to wait for complete pattern
 
-// Pattern recognition variables
-String receivedPattern = "";
-unsigned long lastPatternTime = 0;
-bool patternInProgress = false;
 
 void setup() {
   // Initialize serial communication
@@ -103,9 +98,6 @@ void loop() {
   // Handle haptic feedback timing
   handleHapticFeedback();
   
-  // Check for pattern timeout
-  checkPatternTimeout();
-  
   // Small delay for stability
   delay(10);
 }
@@ -128,42 +120,18 @@ void checkUARTCommands() {
 }
 
 /**
- * Process individual UART commands for pattern recognition
+ * Process UART commands for haptic control
  */
 void processUARTCommand(char command) {
-  // Handle simple enable/disable commands
+  // Handle haptic control commands
   if (command == 'y' || command == 'Y') {
     hapticEnabled = true;
-    triggerHaptic();
-    return;
+    // Play yes pattern: two short pulses
+    playHapticPattern("..");
   } else if (command == 'n' || command == 'N') {
     hapticEnabled = false;
-    return;
-  }
-  
-  // Handle pattern characters (. and -)
-  if (command == '.' || command == '-') {
-    if (!patternInProgress) {
-      patternInProgress = true;
-      receivedPattern = "";
-    }
-    
-    receivedPattern += command;
-    lastPatternTime = millis();
-    
-    // Check if we have a complete pattern
-    if (receivedPattern == "..") {
-      // Yes pattern: two short pulses
-      playHapticPattern("..");
-      resetPattern();
-    } else if (receivedPattern == "---") {
-      // No pattern: three long pulses
-      playHapticPattern("---");
-      resetPattern();
-    }
-  } else {
-    // Non-pattern character received, reset pattern
-    resetPattern();
+    // Play no pattern: three long pulses
+    playHapticPattern("---");
   }
 }
 
@@ -235,23 +203,6 @@ void handleHapticFeedback() {
   }
 }
 
-/**
- * Reset pattern recognition variables
- */
-void resetPattern() {
-  receivedPattern = "";
-  patternInProgress = false;
-  lastPatternTime = 0;
-}
-
-/**
- * Check for pattern timeout
- */
-void checkPatternTimeout() {
-  if (patternInProgress && (millis() - lastPatternTime > PATTERN_TIMEOUT)) {
-    resetPattern();
-  }
-}
 
 /**
  * Play haptic pattern
