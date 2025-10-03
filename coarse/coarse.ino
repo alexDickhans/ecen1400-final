@@ -5,7 +5,12 @@
  * - 5 button inputs (up/down/left/right/select)
  * - Dual UART communication over hardware Serial pins 0/1 and SoftwareSerial pins 4/5
  * - Haptic feedback control on pin 13
- * - Responds to y/n characters for haptic control
+ * - Responds to y/n/t characters for haptic control
+ * 
+ * UART Commands:
+ * - 'y': Enable haptics + yes pattern (..)
+ * - 'n': Disable haptics + no pattern (---)
+ * - 't': Test/signal pattern (-.-)
  * 
  * Pin Configuration:
  * - Button Up: Pin 8
@@ -132,6 +137,9 @@ void processUARTCommand(char command) {
     hapticEnabled = false;
     // Play no pattern: three long pulses
     playHapticPattern("---");
+  } else if (command == 't' || command == 'T') {
+    // Play test/signal pattern: long-short-long pulses
+    playHapticPattern("-.-");
   }
 }
 
