@@ -383,6 +383,21 @@ void sendTurnNotification() {
 }
 
 /**
+ * Send haptic feedback for game end (win/lose)
+ */
+void sendGameEndHaptics(ServoState winner) {
+  if (winner == STATE_X) {
+    // Player X wins - send 'w' to controller 1, 'l' to controller 2
+    coarseSerial1.write('w');  // Win pattern (....--)
+    coarseSerial2.write('l');  // Lose pattern (----..)
+  } else {
+    // Player O wins - send 'l' to controller 1, 'w' to controller 2
+    coarseSerial1.write('l');  // Lose pattern (----..)
+    coarseSerial2.write('w');  // Win pattern (....--)
+  }
+}
+
+/**
  * Start cursor wiggle animation
  */
 void startCursorWiggle() {
@@ -604,6 +619,9 @@ void startWinSequence(int winRow, int winCol, ServoState winner) {
   
   // Stop cursor wiggle
   isWiggling = false;
+  
+  // Send haptic feedback for win/lose
+  sendGameEndHaptics(winner);
 }
 
 /**

@@ -20,7 +20,7 @@
  * - Button Select: Pin 12
  * - Haptic Motor: Pin 13
  * - Hardware UART: Pins 0/1 (RX/TX)
- * - Software UART: Pins 4/5 (TX/RX)
+ * - Software UART: Pins 4/5 (TX- Yellow/RX - Green)
  */
 
 #include <SoftwareSerial.h>
@@ -46,8 +46,8 @@ SoftwareSerial softSerial(SOFT_UART_RX_PIN, SOFT_UART_TX_PIN);
 struct Button {
   int pin;
   char command;
-  bool lastState;
-  bool currentState;
+  int lastState;
+  int currentState;
   unsigned long lastDebounceTime;
   bool pressed;
 };
@@ -130,16 +130,22 @@ void checkUARTCommands() {
 void processUARTCommand(char command) {
   // Handle haptic control commands
   if (command == 'y' || command == 'Y') {
-    hapticEnabled = true;
+    // hapticEnabled = true;
     // Play yes pattern: two short pulses
     playHapticPattern("..");
   } else if (command == 'n' || command == 'N') {
-    hapticEnabled = false;
+    // hapticEnabled = false;
     // Play no pattern: three long pulses
     playHapticPattern("---");
   } else if (command == 't' || command == 'T') {
     // Play test/signal pattern: long-short-long pulses
     playHapticPattern("-.-");
+  } else if (command == 'w' || command == 'W') {
+    // Play win pattern: four dots, two dashes (....--)
+    playHapticPattern("....--");
+  } else if (command == 'l' || command == 'L') {
+    // Play lose pattern: four dashes, two dots (----..)
+    playHapticPattern("----..");
   }
 }
 
@@ -154,6 +160,7 @@ void processButtons() {
     // Check if button state changed (for debouncing)
     if (reading != buttons[i].lastState) {
       buttons[i].lastDebounceTime = millis();
+      buttons[i].lastState = reading;  // Update immediately to prevent timer reset
     }
     
     // Apply debounce logic
@@ -163,7 +170,7 @@ void processButtons() {
         buttons[i].currentState = reading;
         
         // Button pressed (LOW because of pull-up resistor)
-        if (buttons[i].currentState == LOW) {
+        if (buttons[i].currentState == LOW && !buttons[i].pressed) {
           buttons[i].pressed = true;
           
           // Send button command via UART
@@ -173,12 +180,11 @@ void processButtons() {
           if (hapticEnabled) {
             triggerHaptic();
           }
+        } else if (buttons[i].currentState == HIGH) {
+          buttons[i].pressed = false;
         }
       }
     }
-    
-    // Update last state for next iteration
-    buttons[i].lastState = reading;
   }
 }
 

@@ -18,7 +18,7 @@
  * - Joystick Select Button: Pin 3 (INPUT_PULLUP)
  * - Haptic Motor: Pin 13
  * - Hardware UART: Pins 0/1 (RX/TX)
- * - Software UART: Pins 4/5 (TX/RX)
+ * - Software UART: Pins 4/5 (TX- Yellow/RX - Green)
  * 
  * Joystick Thresholds:
  * - Left: A0 < 400
@@ -56,7 +56,7 @@ struct JoystickState {
   int xValue;
   int yValue;
   bool selectPressed;
-  bool lastSelectState;
+  int lastSelectState;
   unsigned long lastSelectDebounceTime;
   bool selectPressedFlag;
   
@@ -72,6 +72,12 @@ struct JoystickState {
   bool lastUpPressed;
   bool lastDownPressed;
   
+  // Direction command sent flags
+  bool leftCommandSent;
+  bool rightCommandSent;
+  bool upCommandSent;
+  bool downCommandSent;
+  
   // Debounce timers for directions
   unsigned long lastLeftDebounceTime;
   unsigned long lastRightDebounceTime;
@@ -82,6 +88,7 @@ struct JoystickState {
 // Initialize joystick state
 JoystickState joystick = {
   512, 512, false, HIGH, 0, false,
+  false, false, false, false,
   false, false, false, false,
   false, false, false, false,
   0, 0, 0, 0
@@ -172,6 +179,12 @@ void processUARTCommand(char command) {
   } else if (command == 't' || command == 'T') {
     // Play test/signal pattern: long-short-long pulses
     playHapticPattern("-.-");
+  } else if (command == 'w' || command == 'W') {
+    // Play win pattern: four dots, two dashes (....--)
+    playHapticPattern("....--");
+  } else if (command == 'l' || command == 'L') {
+    // Play lose pattern: four dashes, two dots (----..)
+    playHapticPattern("----..");
   }
 }
 
@@ -200,13 +213,15 @@ void processSelectButton() {
   // Check if button state changed (for debouncing)
   if (reading != joystick.lastSelectState) {
     joystick.lastSelectDebounceTime = millis();
+    joystick.lastSelectState = reading;  // Update immediately to prevent timer reset
   }
   
   // Apply debounce logic
   if ((millis() - joystick.lastSelectDebounceTime) > DEBOUNCE_DELAY) {
     // Button state has been stable for debounce period
-    if (reading != joystick.selectPressed) {
-      joystick.selectPressed = (reading == LOW);
+    bool currentPressed = (reading == LOW);
+    if (currentPressed != joystick.selectPressed) {
+      joystick.selectPressed = currentPressed;
       
       // Button pressed (LOW because of pull-up resistor)
       if (joystick.selectPressed && !joystick.selectPressedFlag) {
@@ -224,9 +239,6 @@ void processSelectButton() {
       }
     }
   }
-  
-  // Update last state for next iteration
-  joystick.lastSelectState = reading;
 }
 
 /**
@@ -239,61 +251,69 @@ void processDirectionalInputs() {
   // Check for left direction
   if (joystick.leftPressed != joystick.lastLeftPressed) {
     joystick.lastLeftDebounceTime = millis();
+    joystick.lastLeftPressed = joystick.leftPressed;
+    joystick.leftCommandSent = false;  // Reset command sent flag on state change
   }
   if ((millis() - joystick.lastLeftDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
-    if (joystick.leftPressed && !joystick.lastLeftPressed) {
-      // Left direction just activated
+    if (joystick.leftPressed && !joystick.leftCommandSent) {
+      // Left direction activated and debounced
       sendJoystickCommand('l');
       if (hapticEnabled) {
         triggerHaptic();
       }
+      joystick.leftCommandSent = true;
     }
-    joystick.lastLeftPressed = joystick.leftPressed;
   }
   
   // Check for right direction
   if (joystick.rightPressed != joystick.lastRightPressed) {
     joystick.lastRightDebounceTime = millis();
+    joystick.lastRightPressed = joystick.rightPressed;
+    joystick.rightCommandSent = false;  // Reset command sent flag on state change
   }
   if ((millis() - joystick.lastRightDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
-    if (joystick.rightPressed && !joystick.lastRightPressed) {
-      // Right direction just activated
+    if (joystick.rightPressed && !joystick.rightCommandSent) {
+      // Right direction activated and debounced
       sendJoystickCommand('r');
       if (hapticEnabled) {
         triggerHaptic();
       }
+      joystick.rightCommandSent = true;
     }
-    joystick.lastRightPressed = joystick.rightPressed;
   }
   
   // Check for up direction
   if (joystick.upPressed != joystick.lastUpPressed) {
     joystick.lastUpDebounceTime = millis();
+    joystick.lastUpPressed = joystick.upPressed;
+    joystick.upCommandSent = false;  // Reset command sent flag on state change
   }
   if ((millis() - joystick.lastUpDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
-    if (joystick.upPressed && !joystick.lastUpPressed) {
-      // Up direction just activated
+    if (joystick.upPressed && !joystick.upCommandSent) {
+      // Up direction activated and debounced
       sendJoystickCommand('u');
       if (hapticEnabled) {
         triggerHaptic();
       }
+      joystick.upCommandSent = true;
     }
-    joystick.lastUpPressed = joystick.upPressed;
   }
   
   // Check for down direction
   if (joystick.downPressed != joystick.lastDownPressed) {
     joystick.lastDownDebounceTime = millis();
+    joystick.lastDownPressed = joystick.downPressed;
+    joystick.downCommandSent = false;  // Reset command sent flag on state change
   }
   if ((millis() - joystick.lastDownDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
-    if (joystick.downPressed && !joystick.lastDownPressed) {
-      // Down direction just activated
+    if (joystick.downPressed && !joystick.downCommandSent) {
+      // Down direction activated and debounced
       sendJoystickCommand('d');
       if (hapticEnabled) {
         triggerHaptic();
       }
+      joystick.downCommandSent = true;
     }
-    joystick.lastDownPressed = joystick.downPressed;
   }
 }
 

@@ -86,11 +86,15 @@ The system consists of three main components:
 - `y` - Valid move (yes)
 - `n` - Invalid move (no)
 - `t` - Turn notification (test pattern)
+- `w` - Game won (win pattern)
+- `l` - Game lost (lose pattern)
 
 ### Haptic Patterns
 - **Yes Pattern** (`y`): Two short pulses (..)
 - **No Pattern** (`n`): Three long pulses (---)
 - **Turn Pattern** (`t`): Long-short-long pulses (-.-)
+- **Win Pattern** (`w`): Four dots, two dashes (....--)
+- **Lose Pattern** (`l`): Four dashes, two dots (----..)
 
 ## 🛠️ Setup Instructions
 
