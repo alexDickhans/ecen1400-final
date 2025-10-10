@@ -1,0 +1,340 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "3fee2b1e-a705-4271-a0cf-0bfff0c4fc3e")
+	(paper "A4")
+	(lib_symbols)
+	(wire
+		(pts
+			(xy 106.68 81.28) (xy 106.68 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "03140cc4-c06a-4b66-8148-1fec8537f567")
+	)
+	(wire
+		(pts
+			(xy 109.22 73.66) (xy 109.22 69.85)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0d97a903-8c04-485b-a282-bebe3e083599")
+	)
+	(wire
+		(pts
+			(xy 106.68 67.31) (xy 106.68 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "10f1df42-4dc1-475c-bd3b-39488e4e0d74")
+	)
+	(wire
+		(pts
+			(xy 106.68 78.74) (xy 96.52 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "15e59b8e-f0e8-405d-8116-2fc1c103af0d")
+	)
+	(wire
+		(pts
+			(xy 96.52 73.66) (xy 109.22 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "43c31437-4684-4c18-b827-ab5ff7603b5b")
+	)
+	(wire
+		(pts
+			(xy 109.22 76.2) (xy 109.22 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "46c23728-c1c6-46ab-91b4-4d6d8faa2a69")
+	)
+	(wire
+		(pts
+			(xy 96.52 76.2) (xy 109.22 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "535acf2d-9105-4d9a-92e3-6205038e9a10")
+	)
+	(wire
+		(pts
+			(xy 109.22 69.85) (xy 114.3 69.85)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ce00e48-4808-4b05-9be1-783f656238f5")
+	)
+	(wire
+		(pts
+			(xy 114.3 67.31) (xy 106.68 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "814343d6-715b-42e7-ad5d-0a3c0bb6f354")
+	)
+	(wire
+		(pts
+			(xy 114.3 81.28) (xy 106.68 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bbc584ba-92e8-46fe-9013-bff4ed52cda4")
+	)
+	(wire
+		(pts
+			(xy 106.68 71.12) (xy 96.52 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f1064051-8397-43a5-8cf0-2c50fe9825f1")
+	)
+	(wire
+		(pts
+			(xy 109.22 78.74) (xy 114.3 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fdba642e-0ab9-4a27-85ab-4ab6c8759ee5")
+	)
+	(sheet
+		(at 114.3 64.77)
+		(size 17.78 6.35)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "c00e86cd-6f82-460d-8c43-12560757df38")
+		(property "Sheetname" "Coarse Motor Control"
+			(at 114.3 64.0584 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "coarse.kicad_sch"
+			(at 114.3 71.7046 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "TX" input
+			(at 114.3 69.85 180)
+			(uuid "4166b103-f8d3-4ca7-b8d8-aeec40bdc9d1")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "RX" input
+			(at 114.3 67.31 180)
+			(uuid "a0490c97-46a3-46b4-93a7-32fc87c61ac3")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "final_schematics"
+				(path "/3fee2b1e-a705-4271-a0cf-0bfff0c4fc3e"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 68.58 68.58)
+		(size 27.94 12.7)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "dc06e6a6-8239-40a0-9f90-97d9ef295ce1")
+		(property "Sheetname" "Main Board"
+			(at 68.58 67.8684 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "main_board.kicad_sch"
+			(at 68.58 81.8646 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "RX2" input
+			(at 96.52 78.74 0)
+			(uuid "4fffc2f5-562a-4098-9e22-bee7c7797760")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "TX2" input
+			(at 96.52 76.2 0)
+			(uuid "5c42fe2b-c993-432f-b4b6-9f691049c346")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "RX1" input
+			(at 96.52 73.66 0)
+			(uuid "f4b4e1cb-5faf-4091-9bc3-d64017fdb5f0")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "TX1" input
+			(at 96.52 71.12 0)
+			(uuid "66f5b19a-1b79-470a-9224-2f6ab73bacba")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "final_schematics"
+				(path "/3fee2b1e-a705-4271-a0cf-0bfff0c4fc3e"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 114.3 76.2)
+		(size 17.78 6.35)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "fa31039c-982c-4d73-8628-425db3681907")
+		(property "Sheetname" "Fine Motor Control"
+			(at 114.3 75.4884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "fine_motor_control.kicad_sch"
+			(at 114.3 83.1346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "RX" input
+			(at 114.3 78.74 180)
+			(uuid "53657db6-0b90-4ac8-b1f0-19df0599248a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "TX" input
+			(at 114.3 81.28 180)
+			(uuid "14c61af9-2de0-4d49-ae4d-0aa8981cae99")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "final_schematics"
+				(path "/3fee2b1e-a705-4271-a0cf-0bfff0c4fc3e"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
