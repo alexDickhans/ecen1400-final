@@ -1215,7 +1215,7 @@
 		)
 	)
 	(junction
-		(at 109.22 127)
+		(at 106.68 127)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "007164cd-93f4-4d07-936d-b106d243af88")
@@ -1227,7 +1227,7 @@
 		(uuid "4da7fc15-295d-4f62-bde8-efd590e26dc8")
 	)
 	(junction
-		(at 97.79 127)
+		(at 95.25 127)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "699518ad-5aca-4706-b179-e894e87b13f9")
@@ -1239,7 +1239,7 @@
 		(uuid "6d7db14b-467b-4283-8132-759689decc75")
 	)
 	(junction
-		(at 120.65 127)
+		(at 118.11 127)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "6ee62dde-3874-48f4-84a5-e704932e2e48")
@@ -1308,7 +1308,7 @@
 	)
 	(wire
 		(pts
-			(xy 86.36 127) (xy 97.79 127)
+			(xy 83.82 127) (xy 95.25 127)
 		)
 		(stroke
 			(width 0)
@@ -1328,7 +1328,7 @@
 	)
 	(wire
 		(pts
-			(xy 97.79 92.71) (xy 97.79 115.57)
+			(xy 95.25 92.71) (xy 95.25 115.57)
 		)
 		(stroke
 			(width 0)
@@ -1338,7 +1338,7 @@
 	)
 	(wire
 		(pts
-			(xy 97.79 125.73) (xy 97.79 127)
+			(xy 95.25 125.73) (xy 95.25 127)
 		)
 		(stroke
 			(width 0)
@@ -1348,7 +1348,7 @@
 	)
 	(wire
 		(pts
-			(xy 132.08 125.73) (xy 132.08 127)
+			(xy 129.54 125.73) (xy 129.54 127)
 		)
 		(stroke
 			(width 0)
@@ -1358,7 +1358,7 @@
 	)
 	(wire
 		(pts
-			(xy 97.79 92.71) (xy 129.54 92.71)
+			(xy 95.25 92.71) (xy 129.54 92.71)
 		)
 		(stroke
 			(width 0)
@@ -1368,7 +1368,7 @@
 	)
 	(wire
 		(pts
-			(xy 109.22 95.25) (xy 129.54 95.25)
+			(xy 106.68 95.25) (xy 129.54 95.25)
 		)
 		(stroke
 			(width 0)
@@ -1388,7 +1388,7 @@
 	)
 	(wire
 		(pts
-			(xy 120.65 115.57) (xy 120.65 97.79)
+			(xy 118.11 115.57) (xy 118.11 97.79)
 		)
 		(stroke
 			(width 0)
@@ -1438,7 +1438,7 @@
 	)
 	(wire
 		(pts
-			(xy 86.36 106.68) (xy 96.52 106.68)
+			(xy 83.82 106.68) (xy 96.52 106.68)
 		)
 		(stroke
 			(width 0)
@@ -1448,7 +1448,7 @@
 	)
 	(wire
 		(pts
-			(xy 132.08 111.76) (xy 132.08 115.57)
+			(xy 129.54 111.76) (xy 129.54 115.57)
 		)
 		(stroke
 			(width 0)
@@ -1468,7 +1468,7 @@
 	)
 	(wire
 		(pts
-			(xy 109.22 127) (xy 109.22 128.27)
+			(xy 106.68 127) (xy 106.68 128.27)
 		)
 		(stroke
 			(width 0)
@@ -1488,7 +1488,7 @@
 	)
 	(wire
 		(pts
-			(xy 121.92 100.33) (xy 121.92 111.76)
+			(xy 120.65 100.33) (xy 120.65 111.76)
 		)
 		(stroke
 			(width 0)
@@ -1498,7 +1498,7 @@
 	)
 	(wire
 		(pts
-			(xy 120.65 127) (xy 109.22 127)
+			(xy 118.11 127) (xy 106.68 127)
 		)
 		(stroke
 			(width 0)
@@ -1508,7 +1508,7 @@
 	)
 	(wire
 		(pts
-			(xy 132.08 127) (xy 120.65 127)
+			(xy 129.54 127) (xy 118.11 127)
 		)
 		(stroke
 			(width 0)
@@ -1518,7 +1518,7 @@
 	)
 	(wire
 		(pts
-			(xy 121.92 100.33) (xy 129.54 100.33)
+			(xy 120.65 100.33) (xy 129.54 100.33)
 		)
 		(stroke
 			(width 0)
@@ -1528,7 +1528,7 @@
 	)
 	(wire
 		(pts
-			(xy 120.65 97.79) (xy 129.54 97.79)
+			(xy 118.11 97.79) (xy 129.54 97.79)
 		)
 		(stroke
 			(width 0)
@@ -1538,7 +1538,7 @@
 	)
 	(wire
 		(pts
-			(xy 86.36 125.73) (xy 86.36 127)
+			(xy 83.82 125.73) (xy 83.82 127)
 		)
 		(stroke
 			(width 0)
@@ -1548,7 +1548,7 @@
 	)
 	(wire
 		(pts
-			(xy 121.92 111.76) (xy 132.08 111.76)
+			(xy 120.65 111.76) (xy 129.54 111.76)
 		)
 		(stroke
 			(width 0)
@@ -1568,7 +1568,7 @@
 	)
 	(wire
 		(pts
-			(xy 86.36 115.57) (xy 86.36 106.68)
+			(xy 83.82 115.57) (xy 83.82 106.68)
 		)
 		(stroke
 			(width 0)
@@ -1588,7 +1588,7 @@
 	)
 	(wire
 		(pts
-			(xy 97.79 127) (xy 109.22 127)
+			(xy 95.25 127) (xy 106.68 127)
 		)
 		(stroke
 			(width 0)
@@ -1598,7 +1598,7 @@
 	)
 	(wire
 		(pts
-			(xy 120.65 125.73) (xy 120.65 127)
+			(xy 118.11 125.73) (xy 118.11 127)
 		)
 		(stroke
 			(width 0)
@@ -1648,7 +1648,7 @@
 	)
 	(wire
 		(pts
-			(xy 109.22 95.25) (xy 109.22 115.57)
+			(xy 106.68 95.25) (xy 106.68 115.57)
 		)
 		(stroke
 			(width 0)
@@ -1658,7 +1658,7 @@
 	)
 	(wire
 		(pts
-			(xy 109.22 125.73) (xy 109.22 127)
+			(xy 106.68 125.73) (xy 106.68 127)
 		)
 		(stroke
 			(width 0)
@@ -1675,6 +1675,16 @@
 			(type default)
 		)
 		(uuid "f2744d76-6126-4b0f-b5f8-4d4f7a4e1121")
+	)
+	(wire
+		(pts
+			(xy 121.92 102.87) (xy 129.54 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f724dd6e-4780-4f4a-ac19-0ed80db1dd3d")
 	)
 	(wire
 		(pts
@@ -1705,6 +1715,16 @@
 			(justify left bottom)
 		)
 		(uuid "884873b9-6f7a-453f-b532-6c40a788cf44")
+	)
+	(label "HAPTIC"
+		(at 121.92 102.87 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9026bdba-57ab-452f-afae-a80d22c63587")
 	)
 	(label "SELECT"
 		(at 121.92 100.33 0)
@@ -1836,7 +1856,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 97.79 120.65 90)
+		(at 95.25 120.65 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1844,7 +1864,7 @@
 		(dnp no)
 		(uuid "1417faad-100d-4533-9d5d-2e4d1e47a622")
 		(property "Reference" "SW2"
-			(at 99.06 119.3799 90)
+			(at 96.52 119.3799 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1853,7 +1873,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 99.06 121.9199 90)
+			(at 96.52 121.9199 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1862,7 +1882,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_Keyboard:SW_Cherry_MX_1.00u_PCB"
-			(at 97.79 120.65 0)
+			(at 95.25 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1871,7 +1891,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 97.79 120.65 0)
+			(at 95.25 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1880,7 +1900,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 97.79 120.65 0)
+			(at 95.25 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1905,7 +1925,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 120.65 120.65 90)
+		(at 118.11 120.65 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1913,7 +1933,7 @@
 		(dnp no)
 		(uuid "227b2113-02b7-4d91-aa4e-8742d3de64ed")
 		(property "Reference" "SW4"
-			(at 121.92 119.3799 90)
+			(at 119.38 119.3799 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1922,7 +1942,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 121.92 121.9199 90)
+			(at 119.38 121.9199 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1931,7 +1951,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_Keyboard:SW_Cherry_MX_1.00u_PCB"
-			(at 120.65 120.65 0)
+			(at 118.11 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1940,7 +1960,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 120.65 120.65 0)
+			(at 118.11 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1949,7 +1969,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 120.65 120.65 0)
+			(at 118.11 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2129,7 +2149,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 86.36 120.65 90)
+		(at 83.82 120.65 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2137,7 +2157,7 @@
 		(dnp no)
 		(uuid "2f596607-485e-41d5-a18d-cb2381a4232b")
 		(property "Reference" "SW1"
-			(at 87.63 119.3799 90)
+			(at 85.09 119.3799 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2146,7 +2166,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 87.63 121.9199 90)
+			(at 85.09 121.9199 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2155,7 +2175,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_Keyboard:SW_Cherry_MX_1.00u_PCB"
-			(at 86.36 120.65 0)
+			(at 83.82 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2164,7 +2184,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 86.36 120.65 0)
+			(at 83.82 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2173,7 +2193,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 86.36 120.65 0)
+			(at 83.82 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2198,7 +2218,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 109.22 128.27 0)
+		(at 106.68 128.27 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2207,7 +2227,7 @@
 		(fields_autoplaced yes)
 		(uuid "349b9562-4ae0-4056-999d-5e4168ac24e8")
 		(property "Reference" "#PWR06"
-			(at 109.22 134.62 0)
+			(at 106.68 134.62 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2216,7 +2236,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 109.22 133.35 0)
+			(at 106.68 133.35 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2224,7 +2244,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 109.22 128.27 0)
+			(at 106.68 128.27 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2233,7 +2253,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 109.22 128.27 0)
+			(at 106.68 128.27 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2242,7 +2262,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 109.22 128.27 0)
+			(at 106.68 128.27 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2330,7 +2350,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 109.22 120.65 90)
+		(at 106.68 120.65 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2338,7 +2358,7 @@
 		(dnp no)
 		(uuid "82772791-2042-4551-9e96-3251b7b51f44")
 		(property "Reference" "SW3"
-			(at 110.49 119.3799 90)
+			(at 107.95 119.3799 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2347,7 +2367,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 110.49 121.9199 90)
+			(at 107.95 121.9199 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2356,7 +2376,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_Keyboard:SW_Cherry_MX_1.00u_PCB"
-			(at 109.22 120.65 0)
+			(at 106.68 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2365,7 +2385,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 109.22 120.65 0)
+			(at 106.68 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2374,7 +2394,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 109.22 120.65 0)
+			(at 106.68 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2399,7 +2419,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 132.08 120.65 90)
+		(at 129.54 120.65 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2407,7 +2427,7 @@
 		(dnp no)
 		(uuid "b63919e1-8c16-4d3b-a8cb-8911c67a13af")
 		(property "Reference" "SW5"
-			(at 133.35 119.3799 90)
+			(at 130.81 119.3799 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2416,7 +2436,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 133.35 121.9199 90)
+			(at 130.81 121.9199 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2425,7 +2445,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_Keyboard:SW_Cherry_MX_1.00u_PCB"
-			(at 132.08 120.65 0)
+			(at 129.54 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2434,7 +2454,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 132.08 120.65 0)
+			(at 129.54 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2443,7 +2463,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 132.08 120.65 0)
+			(at 129.54 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)

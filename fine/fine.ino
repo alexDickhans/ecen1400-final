@@ -35,8 +35,8 @@
 #define JOYSTICK_Y_PIN A1
 #define JOYSTICK_SELECT_PIN 3
 #define HAPTIC_PIN 13
-#define SOFT_UART_TX_PIN 4
-#define SOFT_UART_RX_PIN 5
+#define SOFT_UART_TX_PIN 7
+#define SOFT_UART_RX_PIN 6
 
 // Joystick threshold settings
 #define JOYSTICK_THRESHOLD_LOW 400
@@ -229,11 +229,6 @@ void processSelectButton() {
         
         // Send select command via UART
         sendJoystickCommand('s');
-        
-        // Trigger haptic feedback if enabled
-        if (hapticEnabled) {
-          triggerHaptic();
-        }
       } else if (!joystick.selectPressed) {
         joystick.selectPressedFlag = false;
       }
@@ -258,9 +253,6 @@ void processDirectionalInputs() {
     if (joystick.leftPressed && !joystick.leftCommandSent) {
       // Left direction activated and debounced
       sendJoystickCommand('l');
-      if (hapticEnabled) {
-        triggerHaptic();
-      }
       joystick.leftCommandSent = true;
     }
   }
@@ -275,9 +267,6 @@ void processDirectionalInputs() {
     if (joystick.rightPressed && !joystick.rightCommandSent) {
       // Right direction activated and debounced
       sendJoystickCommand('r');
-      if (hapticEnabled) {
-        triggerHaptic();
-      }
       joystick.rightCommandSent = true;
     }
   }
@@ -292,9 +281,6 @@ void processDirectionalInputs() {
     if (joystick.upPressed && !joystick.upCommandSent) {
       // Up direction activated and debounced
       sendJoystickCommand('u');
-      if (hapticEnabled) {
-        triggerHaptic();
-      }
       joystick.upCommandSent = true;
     }
   }
@@ -309,9 +295,6 @@ void processDirectionalInputs() {
     if (joystick.downPressed && !joystick.downCommandSent) {
       // Down direction activated and debounced
       sendJoystickCommand('d');
-      if (hapticEnabled) {
-        triggerHaptic();
-      }
       joystick.downCommandSent = true;
     }
   }

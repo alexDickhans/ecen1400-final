@@ -23,8 +23,8 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x40); // First board (A0
 Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41); // Second board (all grounded)
 
 // SoftwareSerial for communication with coarse controllers
-SoftwareSerial coarseSerial1(4, 5); // RX, TX for first controller
-SoftwareSerial coarseSerial2(6, 7); // RX, TX for second controller
+SoftwareSerial coarseSerial1(3, 4); // RX, TX for first controller
+SoftwareSerial coarseSerial2(5, 6); // RX, TX for second controller
 
 // Servo configuration
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
@@ -34,6 +34,9 @@ SoftwareSerial coarseSerial2(6, 7); // RX, TX for second controller
 // Grid dimensions
 #define GRID_SIZE 5
 #define TOTAL_SERVOS 25
+
+// Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
+#define SIMULATION_MODE 0
 
 // Servo states (3 distinct positions for Gomoku)
 enum ServoState {
@@ -55,6 +58,9 @@ unsigned long lastWiggleTime = 0;
 bool isWiggling = false;
 int wiggleStep = 0;
 
+// Simulation mode
+bool simulationMode = false;
+
 // Checkerboard animation variables
 unsigned long lastPatternTime = 0;
 bool checkerboardState = false; // false = X pattern, true = O pattern
@@ -75,28 +81,45 @@ const int servoPositions[3] = {
 };
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Gomoku Game Starting...");
+  
+  // Check for simulation mode command
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    if (command == "simulation") {
+      simulationMode = true;
+      Serial.println("SIMULATION MODE ENABLED - Servos will not move, board state will be printed to serial");
+    }
+  }
   
   // Initialize SoftwareSerial for coarse controllers
   coarseSerial1.begin(9600);
   coarseSerial2.begin(9600);
   
-  // Initialize PCA9685 boards
-  pwm1.begin();
-  pwm1.setOscillatorFrequency(27000000);
-  pwm1.setPWMFreq(SERVO_FREQ);
-  
-  pwm2.begin();
-  pwm2.setOscillatorFrequency(27000000);
-  pwm2.setPWMFreq(SERVO_FREQ);
+  // Initialize PCA9685 boards (only if not in simulation mode)
+  if (!simulationMode) {
+    pwm1.begin();
+    pwm1.setOscillatorFrequency(27000000);
+    pwm1.setPWMFreq(SERVO_FREQ);
+    
+    pwm2.begin();
+    pwm2.setOscillatorFrequency(27000000);
+    pwm2.setPWMFreq(SERVO_FREQ);
+  }
   
   // Initialize game board
   initializeGame();
   
   Serial.println("Gomoku game initialized!");
-  Serial.println("Press 'start' button to begin the game");
+  if (simulationMode) {
+    Serial.println("SIMULATION MODE: Board state will be printed instead of moving servos");
+  } else {
+    Serial.println("Press 'start' button to begin the game");
+  }
   Serial.println("Use u/d/l/r to move, s to select, 'start' to begin");
+  Serial.println("Commands: 'simulation' to enable simulation mode, 'display' to show board");
 }
 
 void loop() {
@@ -116,6 +139,13 @@ void loop() {
         startGame();
       } else if (command == "display") {
         displayGameState();
+      } else if (command == "simulation") {
+        simulationMode = !simulationMode;
+        Serial.print("Simulation mode ");
+        Serial.println(simulationMode ? "ENABLED" : "DISABLED");
+        if (simulationMode) {
+          Serial.println("Servos will not move, board state will be printed to serial");
+        }
       }
     }
     
@@ -145,6 +175,13 @@ void loop() {
       displayGameState();
     } else if (command == "reset") {
       resetGame();
+    } else if (command == "simulation") {
+      simulationMode = !simulationMode;
+      Serial.print("Simulation mode ");
+      Serial.println(simulationMode ? "ENABLED" : "DISABLED");
+      if (simulationMode) {
+        Serial.println("Servos will not move, board state will be printed to serial");
+      }
     }
   }
   
@@ -217,6 +254,12 @@ void setServoPosition(int servoIndex, int position) {
     return;
   }
   
+  // In simulation mode, just print the board state instead of moving servos
+  if (simulationMode) {
+    printSimulationBoard();
+    return;
+  }
+  
   // Determine which PCA9685 board to use
   if (servoIndex < 15) {
     // First 15 servos on first PCA9685 (A0 bridged)
@@ -263,6 +306,33 @@ void displayGameState() {
   Serial.print(",");
   Serial.print(cursorCol);
   Serial.println(")\n");
+}
+
+/**
+ * Print board state in simulation mode (- for empty, x for X, o for O)
+ */
+void printSimulationBoard() {
+  Serial.println("\n=== SIMULATION BOARD ===");
+  for (int row = 0; row < GRID_SIZE; row++) {
+    for (int col = 0; col < GRID_SIZE; col++) {
+      int servoIndex = row * GRID_SIZE + col;
+      char piece = '-';
+      if (gridState[servoIndex] == STATE_X) piece = 'x';
+      else if (gridState[servoIndex] == STATE_O) piece = 'o';
+      
+      Serial.print(piece);
+      if (col < GRID_SIZE - 1) Serial.print(" ");
+    }
+    Serial.println();
+  }
+  Serial.print("Current Player: ");
+  Serial.println(currentPlayer == STATE_X ? "X" : "O");
+  Serial.print("Cursor: (");
+  Serial.print(cursorRow);
+  Serial.print(",");
+  Serial.print(cursorCol);
+  Serial.println(")");
+  Serial.println("=======================\n");
 }
 
 /**
@@ -599,6 +669,11 @@ void updateCheckerboardPattern() {
         setServoPosition(servoIndex, servoPositions[state]);
       }
     }
+    
+    // In simulation mode, print the board after pattern change
+    if (simulationMode) {
+      printSimulationBoard();
+    }
   }
 }
 
@@ -665,6 +740,11 @@ void animateWinStep() {
         setServoPosition(servoIndex, servoPositions[winningPlayer]);
       }
     }
+  }
+  
+  // In simulation mode, print the board after each animation step
+  if (simulationMode) {
+    printSimulationBoard();
   }
 }
 
