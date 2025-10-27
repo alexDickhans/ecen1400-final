@@ -19,9 +19,11 @@
  */
 
 #include <SoftwareSerial.h>
+#include <AltSoftSerial.h>
 
-// SoftwareSerial for communication with coarse controllers
-SoftwareSerial coarseSerial1(3, 4); // RX, TX for first controller
+// AltSoftSerial for communication with first controller (more reliable)
+AltSoftSerial coarseSerial1; // Uses pins 8/9 (RX/TX)
+// SoftwareSerial for communication with second controller
 SoftwareSerial coarseSerial2(5, 6); // RX, TX for second controller
 
 void setup() {
@@ -29,13 +31,14 @@ void setup() {
   Serial.println("Main Board Controller Test Utility");
   Serial.println("==================================");
   
-  // Initialize SoftwareSerial for coarse controllers
+  // Initialize AltSoftSerial for first controller
   coarseSerial1.begin(9600);
+  // Initialize SoftwareSerial for second controller
   coarseSerial2.begin(9600);
   
   Serial.println("Controllers initialized:");
-  Serial.println("- Controller 1: pins 4/5");
-  Serial.println("- Controller 2: pins 6/7");
+  Serial.println("- Controller 1: pins 8/9 (AltSoftSerial)");
+  Serial.println("- Controller 2: pins 5/6 (SoftwareSerial)");
   Serial.println();
   
   printHelp();
