@@ -17,14 +17,16 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <SoftwareSerial.h>
+#include <AltSoftSerial.h>
 
 // Create PCA9685 objects
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x40); // First board (A0 bridged)
 Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41); // Second board (all grounded)
 
-// SoftwareSerial for communication with coarse controllers
-SoftwareSerial coarseSerial1(3, 4); // RX, TX for first controller
-SoftwareSerial coarseSerial2(5, 6); // RX, TX for second controller
+// AltSoftSerial for communication with X player controller (more reliable)
+AltSoftSerial playerXSerial; // Uses pins 8/9 (RX/TX)
+// SoftwareSerial for communication with O player controller
+SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 
 // Button pins
 #define SELECT_BUTTON_PIN 7
@@ -94,9 +96,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Gomoku Game Starting...");
   
-  // Initialize SoftwareSerial for coarse controllers
-  coarseSerial1.begin(9600);
-  coarseSerial2.begin(9600);
+  // Initialize AltSoftSerial for X player controller
+  playerXSerial.begin(9600);
+  // Initialize SoftwareSerial for O player controller
+  playerOSerial.begin(9600);
   
   // Initialize button pins
   pinMode(SELECT_BUTTON_PIN, INPUT_PULLUP);
@@ -125,7 +128,8 @@ void setup() {
     Serial.println("Press RESET/START button to begin the game");
   #endif
   Serial.println("Controls:");
-  Serial.println("  - Coarse controllers: u/d/l/r to move, s to select");
+  Serial.println("  - X player controller: pins 8/9 (AltSoftSerial) - u/d/l/r to move, s to select");
+  Serial.println("  - O player controller: pins 5/6 (SoftwareSerial) - u/d/l/r to move, s to select");
   Serial.println("  - SELECT button (pin 7): Make move during game");
   Serial.println("  - RESET/START button (pin 8): Start game or reset during game");
   Serial.println("Commands: 'display' to show board");
@@ -137,7 +141,7 @@ void loop() {
     updateCheckerboardPattern();
     
     // Check for start button input
-    checkCoarseInput();
+    checkControllerInput();
     
     // Check for button input
     checkButtonInput();
@@ -168,8 +172,8 @@ void loop() {
   // Handle cursor wiggle animation
   updateCursorWiggle();
   
-  // Check for input from coarse controllers
-  checkCoarseInput();
+  // Check for input from player controllers
+  checkControllerInput();
   
   // Check for button input
   checkButtonInput();
@@ -337,19 +341,19 @@ void printSimulationBoard() {
 }
 
 /**
- * Check for input from coarse controllers
+ * Check for input from player controllers
  */
-void checkCoarseInput() {
-  // Check first controller (pins 4/5)
-  if (coarseSerial1.available()) {
-    char command = coarseSerial1.read();
-    processGameInput(command, 1);
+void checkControllerInput() {
+  // Check X player controller (pins 8/9 - AltSoftSerial)
+  if (playerXSerial.available()) {
+    char command = playerXSerial.read();
+    processGameInput(command, STATE_X);
   }
   
-  // Check second controller (pins 6/7)
-  if (coarseSerial2.available()) {
-    char command = coarseSerial2.read();
-    processGameInput(command, 2);
+  // Check O player controller (pins 5/6 - SoftwareSerial)
+  if (playerOSerial.available()) {
+    char command = playerOSerial.read();
+    processGameInput(command, STATE_O);
   }
 }
 
@@ -421,12 +425,17 @@ void handleResetStartButton() {
 /**
  * Process game input commands
  */
-void processGameInput(char command, int controller) {
+void processGameInput(char command, ServoState player) {
   if (!gameActive) {
     // Only handle start command when game is inactive
     if (command == 's') {
       startGame();
     }
+    return;
+  }
+  
+  // Only process input from the current player
+  if (player != currentPlayer) {
     return;
   }
   
@@ -501,8 +510,8 @@ void makeMove() {
  * Send feedback to controllers
  */
 void sendFeedback(char response) {
-  coarseSerial1.write(response);
-  coarseSerial2.write(response);
+  playerXSerial.write(response);
+  playerOSerial.write(response);
 }
 
 /**
@@ -510,11 +519,11 @@ void sendFeedback(char response) {
  */
 void sendTurnNotification() {
   if (currentPlayer == STATE_X) {
-    // Player X's turn - notify controller 1
-    coarseSerial1.write('t');
+    // Player X's turn - notify X player controller
+    playerXSerial.write('t');
   } else {
-    // Player O's turn - notify controller 2
-    coarseSerial2.write('t');
+    // Player O's turn - notify O player controller
+    playerOSerial.write('t');
   }
 }
 
@@ -523,13 +532,13 @@ void sendTurnNotification() {
  */
 void sendGameEndHaptics(ServoState winner) {
   if (winner == STATE_X) {
-    // Player X wins - send 'w' to controller 1, 'l' to controller 2
-    coarseSerial1.write('w');  // Win pattern (....--)
-    coarseSerial2.write('l');  // Lose pattern (----..)
+    // Player X wins - send 'w' to X controller, 'l' to O controller
+    playerXSerial.write('w');  // Win pattern (....--)
+    playerOSerial.write('l');  // Lose pattern (----..)
   } else {
-    // Player O wins - send 'l' to controller 1, 'w' to controller 2
-    coarseSerial1.write('l');  // Lose pattern (----..)
-    coarseSerial2.write('w');  // Win pattern (....--)
+    // Player O wins - send 'l' to X controller, 'w' to O controller
+    playerXSerial.write('l');  // Lose pattern (----..)
+    playerOSerial.write('w');  // Win pattern (....--)
   }
 }
 
