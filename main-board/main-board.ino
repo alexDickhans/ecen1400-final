@@ -26,6 +26,10 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41); // Second board (a
 SoftwareSerial coarseSerial1(3, 4); // RX, TX for first controller
 SoftwareSerial coarseSerial2(5, 6); // RX, TX for second controller
 
+// Button pins
+#define SELECT_BUTTON_PIN 7
+#define RESET_START_BUTTON_PIN 8
+
 // Servo configuration
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
 #define SERVO_MIN 150 // Minimum pulse length count (out of 4096)
@@ -36,7 +40,7 @@ SoftwareSerial coarseSerial2(5, 6); // RX, TX for second controller
 #define TOTAL_SERVOS 25
 
 // Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
-#define SIMULATION_MODE 0
+#define SIMULATION_MODE 1
 
 // Servo states (3 distinct positions for Gomoku)
 enum ServoState {
@@ -58,9 +62,6 @@ unsigned long lastWiggleTime = 0;
 bool isWiggling = false;
 int wiggleStep = 0;
 
-// Simulation mode
-bool simulationMode = false;
-
 // Checkerboard animation variables
 unsigned long lastPatternTime = 0;
 bool checkerboardState = false; // false = X pattern, true = O pattern
@@ -73,6 +74,15 @@ int lastMoveRow = 0;
 int lastMoveCol = 0;
 ServoState winningPlayer = STATE_NONE;
 
+// Button state variables
+bool selectButtonPressed = false;
+bool resetStartButtonPressed = false;
+bool lastSelectButtonState = HIGH;
+bool lastResetStartButtonState = HIGH;
+unsigned long lastSelectDebounceTime = 0;
+unsigned long lastResetStartDebounceTime = 0;
+const unsigned long DEBOUNCE_DELAY = 50; // 50ms debounce delay
+
 // Servo position mapping for each state
 const int servoPositions[3] = {
   SERVO_MIN,                    // STATE_NONE
@@ -84,22 +94,18 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Gomoku Game Starting...");
   
-  // Check for simulation mode command
-  if (Serial.available()) {
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-    if (command == "simulation") {
-      simulationMode = true;
-      Serial.println("SIMULATION MODE ENABLED - Servos will not move, board state will be printed to serial");
-    }
-  }
-  
   // Initialize SoftwareSerial for coarse controllers
   coarseSerial1.begin(9600);
   coarseSerial2.begin(9600);
   
+  // Initialize button pins
+  pinMode(SELECT_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(RESET_START_BUTTON_PIN, INPUT_PULLUP);
+  
   // Initialize PCA9685 boards (only if not in simulation mode)
-  if (!simulationMode) {
+  #if SIMULATION_MODE
+    Serial.println("SIMULATION MODE ENABLED - Servos will not move, board state will be printed to serial");
+  #else
     pwm1.begin();
     pwm1.setOscillatorFrequency(27000000);
     pwm1.setPWMFreq(SERVO_FREQ);
@@ -107,19 +113,22 @@ void setup() {
     pwm2.begin();
     pwm2.setOscillatorFrequency(27000000);
     pwm2.setPWMFreq(SERVO_FREQ);
-  }
+  #endif
   
   // Initialize game board
   initializeGame();
   
   Serial.println("Gomoku game initialized!");
-  if (simulationMode) {
+  #if SIMULATION_MODE
     Serial.println("SIMULATION MODE: Board state will be printed instead of moving servos");
-  } else {
-    Serial.println("Press 'start' button to begin the game");
-  }
-  Serial.println("Use u/d/l/r to move, s to select, 'start' to begin");
-  Serial.println("Commands: 'simulation' to enable simulation mode, 'display' to show board");
+  #else
+    Serial.println("Press RESET/START button to begin the game");
+  #endif
+  Serial.println("Controls:");
+  Serial.println("  - Coarse controllers: u/d/l/r to move, s to select");
+  Serial.println("  - SELECT button (pin 7): Make move during game");
+  Serial.println("  - RESET/START button (pin 8): Start game or reset during game");
+  Serial.println("Commands: 'display' to show board");
 }
 
 void loop() {
@@ -130,6 +139,9 @@ void loop() {
     // Check for start button input
     checkCoarseInput();
     
+    // Check for button input
+    checkButtonInput();
+    
     // Check for serial commands (for debugging)
     if (Serial.available()) {
       String command = Serial.readStringUntil('\n');
@@ -139,13 +151,6 @@ void loop() {
         startGame();
       } else if (command == "display") {
         displayGameState();
-      } else if (command == "simulation") {
-        simulationMode = !simulationMode;
-        Serial.print("Simulation mode ");
-        Serial.println(simulationMode ? "ENABLED" : "DISABLED");
-        if (simulationMode) {
-          Serial.println("Servos will not move, board state will be printed to serial");
-        }
       }
     }
     
@@ -166,6 +171,9 @@ void loop() {
   // Check for input from coarse controllers
   checkCoarseInput();
   
+  // Check for button input
+  checkButtonInput();
+  
   // Check for serial commands (for debugging)
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
@@ -175,13 +183,6 @@ void loop() {
       displayGameState();
     } else if (command == "reset") {
       resetGame();
-    } else if (command == "simulation") {
-      simulationMode = !simulationMode;
-      Serial.print("Simulation mode ");
-      Serial.println(simulationMode ? "ENABLED" : "DISABLED");
-      if (simulationMode) {
-        Serial.println("Servos will not move, board state will be printed to serial");
-      }
     }
   }
   
@@ -254,21 +255,21 @@ void setServoPosition(int servoIndex, int position) {
     return;
   }
   
-  // In simulation mode, just print the board state instead of moving servos
-  if (simulationMode) {
+  #if SIMULATION_MODE
+    // In simulation mode, just print the board state instead of moving servos
     printSimulationBoard();
     return;
-  }
-  
-  // Determine which PCA9685 board to use
-  if (servoIndex < 15) {
-    // First 15 servos on first PCA9685 (A0 bridged)
-    pwm1.setPWM(servoIndex, 0, position);
-  } else {
-    // Last 10 servos on second PCA9685 (all address pins grounded)
-    int channel = servoIndex - 15;
-    pwm2.setPWM(channel, 0, position);
-  }
+  #else
+    // Determine which PCA9685 board to use
+    if (servoIndex < 15) {
+      // First 15 servos on first PCA9685 (A0 bridged)
+      pwm1.setPWM(servoIndex, 0, position);
+    } else {
+      // Last 10 servos on second PCA9685 (all address pins grounded)
+      int channel = servoIndex - 15;
+      pwm2.setPWM(channel, 0, position);
+    }
+  #endif
 }
 
 /**
@@ -349,6 +350,71 @@ void checkCoarseInput() {
   if (coarseSerial2.available()) {
     char command = coarseSerial2.read();
     processGameInput(command, 2);
+  }
+}
+
+/**
+ * Check for button input with debouncing
+ */
+void checkButtonInput() {
+  // Read current button states
+  bool currentSelectButton = digitalRead(SELECT_BUTTON_PIN);
+  bool currentResetStartButton = digitalRead(RESET_START_BUTTON_PIN);
+  
+  // Check for select button press (falling edge with debounce)
+  if (currentSelectButton != lastSelectButtonState) {
+    lastSelectDebounceTime = millis();
+  }
+  
+  if ((millis() - lastSelectDebounceTime) > DEBOUNCE_DELAY) {
+    if (currentSelectButton == LOW && !selectButtonPressed) {
+      selectButtonPressed = true;
+      handleSelectButton();
+    } else if (currentSelectButton == HIGH) {
+      selectButtonPressed = false;
+    }
+  }
+  
+  // Check for reset/start button press (falling edge with debounce)
+  if (currentResetStartButton != lastResetStartButtonState) {
+    lastResetStartDebounceTime = millis();
+  }
+  
+  if ((millis() - lastResetStartDebounceTime) > DEBOUNCE_DELAY) {
+    if (currentResetStartButton == LOW && !resetStartButtonPressed) {
+      resetStartButtonPressed = true;
+      handleResetStartButton();
+    } else if (currentResetStartButton == HIGH) {
+      resetStartButtonPressed = false;
+    }
+  }
+  
+  // Update last button states
+  lastSelectButtonState = currentSelectButton;
+  lastResetStartButtonState = currentResetStartButton;
+}
+
+/**
+ * Handle select button press
+ */
+void handleSelectButton() {
+  if (gameActive) {
+    // During active game, select button makes a move
+    makeMove();
+  }
+  // If game is not active, select button does nothing
+}
+
+/**
+ * Handle reset/start button press
+ */
+void handleResetStartButton() {
+  if (!gameActive) {
+    // If game is not active, start the game
+    startGame();
+  } else {
+    // If game is active, reset the game
+    resetGame();
   }
 }
 
@@ -671,9 +737,9 @@ void updateCheckerboardPattern() {
     }
     
     // In simulation mode, print the board after pattern change
-    if (simulationMode) {
+    #if SIMULATION_MODE
       printSimulationBoard();
-    }
+    #endif
   }
 }
 
@@ -743,9 +809,9 @@ void animateWinStep() {
   }
   
   // In simulation mode, print the board after each animation step
-  if (simulationMode) {
+  #if SIMULATION_MODE
     printSimulationBoard();
-  }
+  #endif
 }
 
 /**
