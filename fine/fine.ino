@@ -251,8 +251,8 @@ void processDirectionalInputs() {
   }
   if ((millis() - joystick.lastLeftDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
     if (joystick.leftPressed && !joystick.leftCommandSent) {
-      // Left direction activated and debounced
-      sendJoystickCommand('l');
+      // Right direction activated and debounced
+      sendJoystickCommand('r');
       joystick.leftCommandSent = true;
     }
   }
@@ -265,8 +265,8 @@ void processDirectionalInputs() {
   }
   if ((millis() - joystick.lastRightDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
     if (joystick.rightPressed && !joystick.rightCommandSent) {
-      // Right direction activated and debounced
-      sendJoystickCommand('r');
+      // Left direction activated and debounced
+      sendJoystickCommand('l');
       joystick.rightCommandSent = true;
     }
   }
@@ -279,8 +279,8 @@ void processDirectionalInputs() {
   }
   if ((millis() - joystick.lastUpDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
     if (joystick.upPressed && !joystick.upCommandSent) {
-      // Up direction activated and debounced
-      sendJoystickCommand('u');
+      // Down direction activated and debounced
+      sendJoystickCommand('d');
       joystick.upCommandSent = true;
     }
   }
@@ -293,8 +293,8 @@ void processDirectionalInputs() {
   }
   if ((millis() - joystick.lastDownDebounceTime) > JOYSTICK_DEBOUNCE_DELAY) {
     if (joystick.downPressed && !joystick.downCommandSent) {
-      // Down direction activated and debounced
-      sendJoystickCommand('d');
+      // Up direction activated and debounced
+      sendJoystickCommand('u');
       joystick.downCommandSent = true;
     }
   }

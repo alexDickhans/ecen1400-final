@@ -34,8 +34,8 @@ SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 
 // Servo configuration
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
-#define SERVO_MIN 150 // Minimum pulse length count (out of 4096)
-#define SERVO_MAX 600 // Maximum pulse length count (out of 4096)
+#define SERVO_MIN 90 // Minimum pulse length count (out of 4096)
+#define SERVO_MAX 525 // Maximum pulse length count (out of 4096)
 
 // Grid dimensions
 #define GRID_SIZE 5
@@ -132,7 +132,7 @@ void setup() {
   Serial.println("  - O player controller: pins 5/6 (SoftwareSerial) - u/d/l/r to move, s to select");
   Serial.println("  - SELECT button (pin 7): Make move during game");
   Serial.println("  - RESET/START button (pin 8): Start game or reset during game");
-  Serial.println("Commands: 'display' to show board");
+  Serial.println("Commands: 'display' to show board, 'testwin' to test win detection");
 }
 
 void loop() {
@@ -169,6 +169,9 @@ void loop() {
     return;
   }
   
+  // Check for wins at the start of each turn (in case a win was missed)
+  checkForWins();
+  
   // Handle cursor wiggle animation
   updateCursorWiggle();
   
@@ -187,6 +190,8 @@ void loop() {
       displayGameState();
     } else if (command == "reset") {
       resetGame();
+    } else if (command == "testwin") {
+      testWinDetection();
     }
   }
   
@@ -485,8 +490,8 @@ void makeMove() {
     setGridState(cursorRow, cursorCol, currentPlayer);
     sendFeedback('y'); // Yes - move is valid
     
-    // Check for win
-    if (checkWin(cursorRow, cursorCol, currentPlayer)) {
+    // Check for win anywhere on the board
+    if (checkBoardForWin(currentPlayer)) {
       startWinSequence(cursorRow, cursorCol, currentPlayer);
       return;
     }
@@ -636,7 +641,7 @@ void moveToNextEmpty() {
 }
 
 /**
- * Check for win condition (5 in a row)
+ * Check for win condition (5 in a row) from a specific position
  */
 bool checkWin(int row, int col, ServoState player) {
   // Check horizontal
@@ -645,13 +650,47 @@ bool checkWin(int row, int col, ServoState player) {
   // Check vertical
   if (countInDirection(row, col, 1, 0, player) >= 5) return true;
   
-  // Check diagonal \
+  // Check diagonal
   if (countInDirection(row, col, 1, 1, player) >= 5) return true;
   
-  // Check diagonal /
+  // Check diagonal
   if (countInDirection(row, col, 1, -1, player) >= 5) return true;
   
   return false;
+}
+
+/**
+ * Check for win condition anywhere on the board
+ */
+bool checkBoardForWin(ServoState player) {
+  // Check every position on the board for a win
+  for (int row = 0; row < GRID_SIZE; row++) {
+    for (int col = 0; col < GRID_SIZE; col++) {
+      if (gridState[row * GRID_SIZE + col] == player) {
+        if (checkWin(row, col, player)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Check for wins for both players and handle if found
+ */
+void checkForWins() {
+  // Check for X wins
+  if (checkBoardForWin(STATE_X)) {
+    startWinSequence(cursorRow, cursorCol, STATE_X);
+    return;
+  }
+  
+  // Check for O wins
+  if (checkBoardForWin(STATE_O)) {
+    startWinSequence(cursorRow, cursorCol, STATE_O);
+    return;
+  }
 }
 
 /**
@@ -708,6 +747,9 @@ void startGame() {
   
   // Start cursor wiggle at top-left
   startCursorWiggle();
+  
+  // Check for any existing wins before starting
+  checkForWins();
   
   // Notify first player (X) that it's their turn
   sendTurnNotification();
