@@ -175,11 +175,6 @@ void processButtons() {
           
           // Send button command via UART
           sendButtonCommand(buttons[i].command);
-          
-          // Trigger haptic feedback if enabled
-          if (hapticEnabled) {
-            triggerHaptic();
-          }
         } else if (buttons[i].currentState == HIGH) {
           buttons[i].pressed = false;
         }

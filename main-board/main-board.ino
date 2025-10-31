@@ -12,6 +12,16 @@
  * 10 11 12 13 14
  * 15 16 17 18 19
  * 20 21 22 23 24
+ * 
+ * Servo Connection Ordering:
+ * - First PCA9685 (0x40, A0 bridged):
+ *   Channels 0-14 connect to servo indices 0-14
+ *   Grid mapping: Servo index = row * 5 + col
+ *   Physical channels: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+ *   
+ * - Second PCA9685 (0x41, all address pins grounded):
+ *   Channels 0-9 connect to servo indices 15-24
+ *   Physical channels: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (map to grid indices 15-24)
  */
 
 #include <Wire.h>
@@ -41,8 +51,11 @@ SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 #define GRID_SIZE 5
 #define TOTAL_SERVOS 25
 
+// Win condition - number of pieces in a row needed to win
+#define WIN_CONDITION 3
+
 // Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
-#define SIMULATION_MODE 1
+#define SIMULATION_MODE 0
 
 // Servo states (3 distinct positions for Gomoku)
 enum ServoState {
@@ -87,9 +100,9 @@ const unsigned long DEBOUNCE_DELAY = 50; // 50ms debounce delay
 
 // Servo position mapping for each state
 const int servoPositions[3] = {
-  SERVO_MIN,                    // STATE_NONE
-  (SERVO_MIN + SERVO_MAX) / 2,  // STATE_X
-  SERVO_MAX                     // STATE_O
+  300,  // STATE_NONE
+  470,                    // STATE_X
+  100                    // STATE_O
 };
 
 void setup() {
@@ -190,8 +203,6 @@ void loop() {
       displayGameState();
     } else if (command == "reset") {
       resetGame();
-    } else if (command == "testwin") {
-      testWinDetection();
     }
   }
   
@@ -266,7 +277,7 @@ void setServoPosition(int servoIndex, int position) {
   
   #if SIMULATION_MODE
     // In simulation mode, just print the board state instead of moving servos
-    printSimulationBoard();
+    printBoard();
     return;
   #else
     // Determine which PCA9685 board to use
@@ -319,10 +330,10 @@ void displayGameState() {
 }
 
 /**
- * Print board state in simulation mode (- for empty, x for X, o for O)
+ * Print board state (- for empty, x for X, o for O)
  */
-void printSimulationBoard() {
-  Serial.println("\n=== SIMULATION BOARD ===");
+void printBoard() {
+  Serial.println("\n=== BOARD STATE ===");
   for (int row = 0; row < GRID_SIZE; row++) {
     for (int col = 0; col < GRID_SIZE; col++) {
       int servoIndex = row * GRID_SIZE + col;
@@ -342,7 +353,7 @@ void printSimulationBoard() {
   Serial.print(",");
   Serial.print(cursorCol);
   Serial.println(")");
-  Serial.println("=======================\n");
+  Serial.println("==================\n");
 }
 
 /**
@@ -490,6 +501,9 @@ void makeMove() {
     setGridState(cursorRow, cursorCol, currentPlayer);
     sendFeedback('y'); // Yes - move is valid
     
+    // Print board state after move
+    printBoard();
+    
     // Check for win anywhere on the board
     if (checkBoardForWin(currentPlayer)) {
       startWinSequence(cursorRow, cursorCol, currentPlayer);
@@ -591,11 +605,7 @@ void updateEmptyWiggle(int servoIndex, unsigned long currentTime) {
     wiggleStep++;
     lastWiggleTime = currentTime;
     
-    // Stop after 8 steps (2 full cycles)
-    if (wiggleStep >= 8) {
-      isWiggling = false;
-      setServoPosition(servoIndex, basePosition);
-    }
+    // Animation continues forever - no stopping condition
   }
 }
 
@@ -615,11 +625,7 @@ void updateOccupiedWiggle(int servoIndex, unsigned long currentTime) {
     wiggleStep++;
     lastWiggleTime = currentTime;
     
-    // Stop after 6 steps (1.5 cycles)
-    if (wiggleStep >= 6) {
-      isWiggling = false;
-      setServoPosition(servoIndex, basePosition);
-    }
+    // Animation continues forever - no stopping condition
   }
 }
 
@@ -627,34 +633,42 @@ void updateOccupiedWiggle(int servoIndex, unsigned long currentTime) {
  * Move cursor to next empty position
  */
 void moveToNextEmpty() {
+  // Always move cursor to position (0,0) regardless of availability
+  cursorRow = 0;
+  cursorCol = 0;
+  startCursorWiggle();
+  
+  // Check if board is full (all positions taken)
+  bool boardFull = true;
   for (int i = 0; i < TOTAL_SERVOS; i++) {
     if (gridState[i] == STATE_NONE) {
-      cursorRow = i / GRID_SIZE;
-      cursorCol = i % GRID_SIZE;
-      startCursorWiggle();
-      return;
+      boardFull = false;
+      break;
     }
   }
-  // Board is full - game is a draw
-  gameActive = false;
-  Serial.println("Game is a draw!");
+  
+  if (boardFull) {
+    // Board is full - game is a draw
+    gameActive = false;
+    Serial.println("Game is a draw!");
+  }
 }
 
 /**
- * Check for win condition (5 in a row) from a specific position
+ * Check for win condition (WIN_CONDITION in a row) from a specific position
  */
 bool checkWin(int row, int col, ServoState player) {
   // Check horizontal
-  if (countInDirection(row, col, 0, 1, player) >= 5) return true;
+  if (countInDirection(row, col, 0, 1, player) >= WIN_CONDITION) return true;
   
   // Check vertical
-  if (countInDirection(row, col, 1, 0, player) >= 5) return true;
+  if (countInDirection(row, col, 1, 0, player) >= WIN_CONDITION) return true;
   
   // Check diagonal
-  if (countInDirection(row, col, 1, 1, player) >= 5) return true;
+  if (countInDirection(row, col, 1, 1, player) >= WIN_CONDITION) return true;
   
   // Check diagonal
-  if (countInDirection(row, col, 1, -1, player) >= 5) return true;
+  if (countInDirection(row, col, 1, -1, player) >= WIN_CONDITION) return true;
   
   return false;
 }
@@ -787,10 +801,8 @@ void updateCheckerboardPattern() {
       }
     }
     
-    // In simulation mode, print the board after pattern change
-    #if SIMULATION_MODE
-      printSimulationBoard();
-    #endif
+    // Print the board after pattern change
+    printBoard();
   }
 }
 
@@ -859,10 +871,8 @@ void animateWinStep() {
     }
   }
   
-  // In simulation mode, print the board after each animation step
-  #if SIMULATION_MODE
-    printSimulationBoard();
-  #endif
+  // Print the board after each animation step
+  printBoard();
 }
 
 /**
