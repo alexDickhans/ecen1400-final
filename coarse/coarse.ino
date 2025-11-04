@@ -8,8 +8,8 @@
  * - Responds to y/n/t characters for haptic control
  * 
  * UART Commands:
- * - 'y': Enable haptics + yes pattern (..)
- * - 'n': Disable haptics + no pattern (---)
+ * - 'y': Yes pattern (..)
+ * - 'n': No pattern (---)
  * - 't': Test/signal pattern (-.-)
  * 
  * Pin Configuration:
@@ -62,7 +62,6 @@ Button buttons[BUTTON_COUNT] = {
 };
 
 // Haptic feedback settings
-bool hapticEnabled = true;
 unsigned long hapticStartTime = 0;
 unsigned long hapticDuration = 100; // milliseconds
 
@@ -130,11 +129,9 @@ void checkUARTCommands() {
 void processUARTCommand(char command) {
   // Handle haptic control commands
   if (command == 'y' || command == 'Y') {
-    // hapticEnabled = true;
     // Play yes pattern: two short pulses
     playHapticPattern("..");
   } else if (command == 'n' || command == 'N') {
-    // hapticEnabled = false;
     // Play no pattern: three long pulses
     playHapticPattern("---");
   } else if (command == 't' || command == 'T') {
@@ -195,10 +192,8 @@ void sendButtonCommand(char command) {
  * Trigger haptic feedback
  */
 void triggerHaptic() {
-  if (hapticEnabled) {
-    digitalWrite(HAPTIC_PIN, HIGH);
-    hapticStartTime = millis();
-  }
+  digitalWrite(HAPTIC_PIN, HIGH);
+  hapticStartTime = millis();
 }
 
 /**
@@ -217,8 +212,6 @@ void handleHapticFeedback() {
  * Play haptic pattern
  */
 void playHapticPattern(String pattern) {
-  if (!hapticEnabled) return;
-  
   for (int i = 0; i < pattern.length(); i++) {
     char pulse = pattern.charAt(i);
     
