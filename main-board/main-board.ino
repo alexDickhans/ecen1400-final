@@ -54,6 +54,12 @@ SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 // Win condition - number of pieces in a row needed to win
 #define WIN_CONDITION 3
 
+// Maximum number of servos that can move simultaneously (adjustable)
+#define MAX_CONCURRENT_SERVO_MOVEMENTS 10
+
+// Movement tracking duration (milliseconds a servo is considered "moving")
+#define MOVEMENT_DURATION 300
+
 // Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
 #define SIMULATION_MODE 0
 
@@ -98,6 +104,29 @@ unsigned long lastSelectDebounceTime = 0;
 unsigned long lastResetStartDebounceTime = 0;
 const unsigned long DEBOUNCE_DELAY = 50; // 50ms debounce delay
 
+// Movement tracking structures (optimized for memory)
+struct Movement {
+  uint8_t servoIndex;      // 0-24, so uint8_t is sufficient
+  uint16_t position;       // Pulse width (0-4095), uint16_t is sufficient
+  unsigned long startTime;
+  bool active;
+};
+
+Movement activeMovements[MAX_CONCURRENT_SERVO_MOVEMENTS];
+struct PendingMovement {
+  uint8_t servoIndex;
+  uint16_t position;
+  unsigned long scheduledStartTime;  // When this movement should actually start
+};
+
+// Reduced queue size to save memory (15 items = ~45 bytes instead of ~400 bytes)
+#define MOVEMENT_QUEUE_SIZE 25
+PendingMovement movementQueue[MOVEMENT_QUEUE_SIZE];
+uint8_t queueHead = 0;
+uint8_t queueTail = 0;
+uint8_t queueSize = 0;
+unsigned long lastMovementStartTime = 0;  // Track when last movement started for staggering
+
 // Servo position mapping for each state
 const int servoPositions[3] = {
   300,  // STATE_NONE
@@ -131,6 +160,17 @@ void setup() {
     pwm2.setPWMFreq(SERVO_FREQ);
   #endif
   
+  // Initialize movement tracking
+  for (int i = 0; i < MAX_CONCURRENT_SERVO_MOVEMENTS; i++) {
+    activeMovements[i].active = false;
+  }
+  queueHead = 0;
+  queueTail = 0;
+  queueSize = 0;
+  
+  // Seed random number generator for random queue processing
+  randomSeed(analogRead(0));
+  
   // Initialize game board
   initializeGame();
   
@@ -149,6 +189,9 @@ void setup() {
 }
 
 void loop() {
+  // Process movement queue to allow queued movements to start when slots become available
+  processMovementQueue();
+  
   if (!gameActive) {
     // Show checkerboard pattern when game is inactive
     updateCheckerboardPattern();
@@ -178,6 +221,7 @@ void loop() {
   // Handle win sequence if active
   if (winSequenceActive) {
     updateWinSequence();
+    processMovementQueue(); // Also process queue during win sequence
     delay(100);
     return;
   }
@@ -266,7 +310,165 @@ void setAllServos(ServoState state) {
 }
 
 /**
- * Set a specific servo position
+ * Count number of currently active movements
+ */
+int countActiveMovements() {
+  int count = 0;
+  unsigned long currentTime = millis();
+  
+  for (int i = 0; i < MAX_CONCURRENT_SERVO_MOVEMENTS; i++) {
+    if (activeMovements[i].active) {
+      // Check if movement has expired
+      if (currentTime - activeMovements[i].startTime >= MOVEMENT_DURATION) {
+        activeMovements[i].active = false;
+      } else {
+        count++;
+      }
+    }
+  }
+  
+  return count;
+}
+
+/**
+ * Find an available slot for a new movement
+ */
+int findAvailableMovementSlot() {
+  unsigned long currentTime = millis();
+  
+  // First, clean up expired movements
+  for (int i = 0; i < MAX_CONCURRENT_SERVO_MOVEMENTS; i++) {
+    if (activeMovements[i].active) {
+      if (currentTime - activeMovements[i].startTime >= MOVEMENT_DURATION) {
+        activeMovements[i].active = false;
+      }
+    }
+  }
+  
+  // Find an empty slot
+  for (int i = 0; i < MAX_CONCURRENT_SERVO_MOVEMENTS; i++) {
+    if (!activeMovements[i].active) {
+      return i;
+    }
+  }
+  
+  return -1; // No available slot
+}
+
+/**
+ * Add a movement to the active movements list
+ */
+void addActiveMovement(uint8_t servoIndex, uint16_t position) {
+  int slot = findAvailableMovementSlot();
+  if (slot >= 0) {
+    activeMovements[slot].servoIndex = servoIndex;
+    activeMovements[slot].position = position;
+    activeMovements[slot].startTime = millis();
+    activeMovements[slot].active = true;
+  }
+}
+
+/**
+ * Add a movement to the queue with staggered start time
+ */
+void enqueueMovement(uint8_t servoIndex, uint16_t position) {
+  if (queueSize < MOVEMENT_QUEUE_SIZE) {
+    movementQueue[queueTail].servoIndex = servoIndex;
+    movementQueue[queueTail].position = position;
+    
+    // Schedule start time with random delay (10-100ms)
+    // For movements queued at the same time, use the last scheduled time to accumulate delays
+    unsigned long currentTime = millis();
+    unsigned long staggerDelay = random(10, 101);  // 10-100ms random delay
+    
+    // If this is the first movement or we're starting fresh, use current time
+    // Otherwise, accumulate delay from the last scheduled time
+    if (queueSize == 0 && lastMovementStartTime == 0) {
+      // First movement - schedule immediately with small delay
+      movementQueue[queueTail].scheduledStartTime = currentTime + staggerDelay;
+    } else {
+      // Accumulate delay from the last scheduled time in the queue
+      // Find the latest scheduled time in the queue
+      unsigned long latestScheduledTime = currentTime;
+      for (uint8_t i = 0; i < queueSize; i++) {
+        uint8_t queuePos = (queueHead + i) % MOVEMENT_QUEUE_SIZE;
+        if (movementQueue[queuePos].scheduledStartTime > latestScheduledTime) {
+          latestScheduledTime = movementQueue[queuePos].scheduledStartTime;
+        }
+      }
+      // Schedule after the latest scheduled time plus stagger delay
+      movementQueue[queueTail].scheduledStartTime = latestScheduledTime + staggerDelay;
+    }
+    
+    queueTail = (queueTail + 1) % MOVEMENT_QUEUE_SIZE;
+    queueSize++;
+  }
+}
+
+/**
+ * Process queued movements when slots become available (in random order, with staggered timing)
+ */
+void processMovementQueue() {
+  unsigned long currentTime = millis();
+  int attempts = 0;  // Prevent infinite loop
+  const int maxAttempts = queueSize;  // Try at most once per queued item
+  
+  while (queueSize > 0 && attempts < maxAttempts) {
+    attempts++;
+    
+    int slot = findAvailableMovementSlot();
+    if (slot < 0) {
+      break; // No available slots
+    }
+    
+    // Collect all ready movements first (scheduled time has passed)
+    uint8_t readyIndices[MOVEMENT_QUEUE_SIZE];
+    uint8_t readyCount = 0;
+    
+    for (uint8_t i = 0; i < queueSize; i++) {
+      uint8_t queuePos = (queueHead + i) % MOVEMENT_QUEUE_SIZE;
+      if (movementQueue[queuePos].scheduledStartTime <= currentTime) {
+        readyIndices[readyCount] = i;
+        readyCount++;
+      }
+    }
+    
+    // If no ready movement found, exit (will try again next loop iteration)
+    if (readyCount == 0) {
+      break;
+    }
+    
+    // Randomly select one from all ready movements
+    uint8_t selectedIndex = readyIndices[random(0, readyCount)];
+    uint8_t selectedPos = (queueHead + selectedIndex) % MOVEMENT_QUEUE_SIZE;
+    
+    // Swap the randomly selected ready movement with the head item
+    PendingMovement movement = movementQueue[selectedPos];
+    movementQueue[selectedPos] = movementQueue[queueHead];
+    movementQueue[queueHead] = movement;
+    
+    // Remove from queue
+    queueHead = (queueHead + 1) % MOVEMENT_QUEUE_SIZE;
+    queueSize--;
+    
+    // Update last movement start time for next stagger calculation
+    lastMovementStartTime = currentTime;
+    
+    // Execute the movement
+    if (movement.servoIndex < 15) {
+      pwm1.setPWM(movement.servoIndex, 0, movement.position);
+    } else {
+      uint8_t channel = movement.servoIndex - 15;
+      pwm2.setPWM(channel, 0, movement.position);
+    }
+    
+    // Add to active movements
+    addActiveMovement(movement.servoIndex, movement.position);
+  }
+}
+
+/**
+ * Set a specific servo position (with movement limiting)
  * @param servoIndex - Servo index (0-24)
  * @param position - Pulse length (150-600)
  */
@@ -280,15 +482,12 @@ void setServoPosition(int servoIndex, int position) {
     printBoard();
     return;
   #else
-    // Determine which PCA9685 board to use
-    if (servoIndex < 15) {
-      // First 15 servos on first PCA9685 (A0 bridged)
-      pwm1.setPWM(servoIndex, 0, position);
-    } else {
-      // Last 10 servos on second PCA9685 (all address pins grounded)
-      int channel = servoIndex - 15;
-      pwm2.setPWM(channel, 0, position);
-    }
+    // Always queue movements - the queue processing will handle randomization and staggering
+    // This ensures all movements go through the same randomized selection process
+    enqueueMovement(servoIndex, position);
+    
+    // Process the queue to execute movements when slots are available
+    processMovementQueue();
   #endif
 }
 
@@ -510,9 +709,10 @@ void makeMove() {
   
   // Check if position is empty
   if (gridState[servoIndex] == STATE_NONE) {
-    // Valid move
+    // Valid move - capture current player before switching
+    ServoState movePlayer = currentPlayer;
     setGridState(cursorRow, cursorCol, currentPlayer);
-    sendFeedback('y'); // Yes - move is valid
+    sendFeedback('y', movePlayer); // Yes - move is valid, send to player who made the move
     
     // Print board state after move
     printBoard();
@@ -534,16 +734,21 @@ void makeMove() {
     
   } else {
     // Invalid move - position already taken
-    sendFeedback('n'); // No - move is invalid
+    sendFeedback('n', currentPlayer); // No - move is invalid, send to current player
   }
 }
 
 /**
- * Send feedback to controllers
+ * Send feedback to the active controller only
  */
-void sendFeedback(char response) {
-  playerXSerial.write(response);
-  playerOSerial.write(response);
+void sendFeedback(char response, ServoState player) {
+  if (player == STATE_X) {
+    // Send to X player controller only
+    playerXSerial.write(response);
+  } else {
+    // Send to O player controller only
+    playerOSerial.write(response);
+  }
 }
 
 /**
@@ -566,10 +771,12 @@ void sendGameEndHaptics(ServoState winner) {
   if (winner == STATE_X) {
     // Player X wins - send 'w' to X controller, 'l' to O controller
     playerXSerial.write('w');  // Win pattern (....--)
+    delay(10);
     playerOSerial.write('l');  // Lose pattern (----..)
   } else {
     // Player O wins - send 'l' to X controller, 'w' to O controller
     playerXSerial.write('l');  // Lose pattern (----..)
+    delay(10);
     playerOSerial.write('w');  // Win pattern (....--)
   }
 }
