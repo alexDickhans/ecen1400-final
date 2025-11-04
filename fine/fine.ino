@@ -8,8 +8,8 @@
  * - Responds to y/n/t characters for haptic control
  * 
  * UART Commands:
- * - 'y': Yes pattern (..)
- * - 'n': No pattern (---)
+ * - 'y': Yes pattern (...) - three quick short pulses
+ * - 'n': No pattern (----) - four long pulses
  * - 't': Test/signal pattern (-.-)
  * 
  * Pin Configuration:
@@ -168,11 +168,11 @@ void checkUARTCommands() {
 void processUARTCommand(char command) {
   // Handle haptic control commands
   if (command == 'y' || command == 'Y') {
-    // Play yes pattern: two short pulses
-    playHapticPattern("..");
+    // Play yes pattern: three quick short pulses (light, positive confirmation)
+    playHapticPattern("...");
   } else if (command == 'n' || command == 'N') {
-    // Play no pattern: three long pulses
-    playHapticPattern("---");
+    // Play no pattern: four long pulses (emphatic, negative response)
+    playHapticPattern("----");
   } else if (command == 't' || command == 'T') {
     // Play test/signal pattern: long-short-long pulses
     playHapticPattern("-.-");

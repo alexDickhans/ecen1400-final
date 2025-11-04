@@ -52,13 +52,13 @@ SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 #define TOTAL_SERVOS 25
 
 // Win condition - number of pieces in a row needed to win
-#define WIN_CONDITION 3
+#define WIN_CONDITION 4
 
 // Maximum number of servos that can move simultaneously (adjustable)
 #define MAX_CONCURRENT_SERVO_MOVEMENTS 10
 
 // Movement tracking duration (milliseconds a servo is considered "moving")
-#define MOVEMENT_DURATION 300
+#define MOVEMENT_DURATION 100
 
 // Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
 #define SIMULATION_MODE 0
