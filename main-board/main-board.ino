@@ -51,14 +51,14 @@ SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
 #define GRID_SIZE 5
 #define TOTAL_SERVOS 25
 
-// Win condition - number of pieces in a row needed to win
-#define WIN_CONDITION 4
+// Win condition - number of pieces in a row needed to win (will be set based on gamemode)
+uint8_t winCondition = 4;
 
 // Maximum number of servos that can move simultaneously (adjustable)
 #define MAX_CONCURRENT_SERVO_MOVEMENTS 10
 
 // Movement tracking duration (milliseconds a servo is considered "moving")
-#define MOVEMENT_DURATION 100
+#define MOVEMENT_DURATION 300
 
 // Simulation mode - set to 1 to enable simulation (no servo movement, prints board state)
 #define SIMULATION_MODE 0
@@ -70,10 +70,25 @@ enum ServoState {
   STATE_O = 2       // O piece (high position)
 };
 
+// Game mode states
+enum GameModeState {
+  STATE_IDLE = 0,
+  STATE_GAME_SELECT = 1,
+  STATE_ACTIVE = 2
+};
+
+// Game mode types
+enum GameType {
+  GAME_GOMOKU = 0,
+  GAME_CONNECT4 = 1
+};
+
 // Grid state array - tracks current state of each servo
 ServoState gridState[TOTAL_SERVOS];
 
 // Game state variables
+GameModeState gameModeState = STATE_IDLE;
+uint8_t currentGameMode = 0; // 0-2: Gomoku 3-5, 3-5: Connect4 3-5
 int cursorRow = 0;
 int cursorCol = 0;
 ServoState currentPlayer = STATE_X; // X starts first
@@ -86,6 +101,9 @@ int wiggleStep = 0;
 // Checkerboard animation variables
 unsigned long lastPatternTime = 0;
 bool checkerboardState = false; // false = X pattern, true = O pattern
+
+// Gamemode display variables
+uint8_t lastDisplayedGameMode = 255; // Track last displayed gamemode (255 = not set)
 
 // Win sequence variables
 bool winSequenceActive = false;
@@ -112,6 +130,9 @@ struct Movement {
   bool active;
 };
 
+// Flag to use immediate movements (no delays) for gamemode display
+bool useImmediateMovements = false;
+
 Movement activeMovements[MAX_CONCURRENT_SERVO_MOVEMENTS];
 struct PendingMovement {
   uint8_t servoIndex;
@@ -136,7 +157,7 @@ const int servoPositions[3] = {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Gomoku Game Starting...");
+  Serial.println(F("Gomoku Game Starting..."));
   
   // Initialize AltSoftSerial for X player controller
   playerXSerial.begin(9600);
@@ -149,7 +170,7 @@ void setup() {
   
   // Initialize PCA9685 boards (only if not in simulation mode)
   #if SIMULATION_MODE
-    Serial.println("SIMULATION MODE ENABLED - Servos will not move, board state will be printed to serial");
+    Serial.println(F("SIMULATION MODE ENABLED - Servos will not move, board state will be printed to serial"));
   #else
     pwm1.begin();
     pwm1.setOscillatorFrequency(27000000);
@@ -174,32 +195,27 @@ void setup() {
   // Initialize game board
   initializeGame();
   
-  Serial.println("Gomoku game initialized!");
+  Serial.println(F("Gomoku game initialized!"));
   #if SIMULATION_MODE
-    Serial.println("SIMULATION MODE: Board state will be printed instead of moving servos");
+    Serial.println(F("SIMULATION MODE: Board state will be printed instead of moving servos"));
   #else
-    Serial.println("Press RESET/START button to begin the game");
+    Serial.println(F("Press SELECT to choose gamemode, then SELECT again to start"));
   #endif
-  Serial.println("Controls:");
-  Serial.println("  - X player controller: pins 8/9 (AltSoftSerial) - u/d/l/r to move, s to select");
-  Serial.println("  - O player controller: pins 5/6 (SoftwareSerial) - u/d/l/r to move, s to select");
-  Serial.println("  - SELECT button (pin 7): Make move during game");
-  Serial.println("  - RESET/START button (pin 8): Start game or reset during game");
-  Serial.println("Commands: 'display' to show board, 'testwin' to test win detection");
+  Serial.println(F("Controls:"));
+  Serial.println(F("  - X/O controllers: l/r to change gamemode, s to enter/start"));
+  Serial.println(F("  - SELECT button: Enter gamemode select or start game"));
 }
 
 void loop() {
   // Process movement queue to allow queued movements to start when slots become available
   processMovementQueue();
   
-  if (!gameActive) {
-    // Show checkerboard pattern when game is inactive
+  if (gameModeState == STATE_IDLE) {
+    // Show checkerboard pattern when idle
     updateCheckerboardPattern();
     
-    // Check for start button input
+    // Check for controller and button input
     checkControllerInput();
-    
-    // Check for button input
     checkButtonInput();
     
     // Check for serial commands (for debugging)
@@ -208,12 +224,30 @@ void loop() {
       command.trim();
       
       if (command == "start") {
-        startGame();
+        enterGameSelect();
       } else if (command == "display") {
         displayGameState();
       }
     }
     
+    delay(50);
+    return;
+  }
+  
+  if (gameModeState == STATE_GAME_SELECT) {
+    // Show gamemode pattern on board (similar to checkerboard pattern)
+    updateGamemodeDisplay();
+    
+    // Check for controller and button input
+    checkControllerInput();
+    checkButtonInput();
+    
+    delay(50);
+    return;
+  }
+  
+  // STATE_ACTIVE - game is running
+  if (!gameActive) {
     delay(50);
     return;
   }
@@ -264,21 +298,173 @@ void initializeGame() {
   }
   
   // Reset game state
+  gameModeState = STATE_IDLE;
+  currentGameMode = 0;
   cursorRow = 0;
   cursorCol = 0;
   currentPlayer = STATE_X;
   gameActive = false; // Start inactive
   gameStarted = false;
+  winSequenceActive = false;
   isWiggling = false;
   checkerboardState = false;
   lastPatternTime = millis();
-  winSequenceActive = false;
   winningPlayer = STATE_NONE;
+  winCondition = 4;
   
   delay(1000); // Allow servos to reach position
   
   // Start with checkerboard pattern
   updateCheckerboardPattern();
+}
+
+/**
+ * Enter game select mode
+ */
+void enterGameSelect() {
+  gameModeState = STATE_GAME_SELECT;
+  currentGameMode = 0; // Start at first gamemode
+  gameStarted = false; // Reset game started flag
+  lastDisplayedGameMode = 255; // Force update on next loop
+}
+
+/**
+ * Update gamemode display on board
+ * Shows pattern of squares in a row based on gamemode
+ * Similar approach to checkerboard pattern - continuously applies the pattern
+ */
+void updateGamemodeDisplay() {
+  // Only update if gamemode changed
+  if (lastDisplayedGameMode == currentGameMode) {
+    return; // Already displaying correct pattern
+  }
+  
+  lastDisplayedGameMode = currentGameMode;
+  
+  uint8_t squaresInRow;
+  bool isConnect4 = (currentGameMode >= 3);
+  
+  if (isConnect4) {
+    // Connect 4 modes (3-5): map to 3-5 in a row
+    squaresInRow = currentGameMode - 3 + 3; // 3, 4, or 5
+  } else {
+    // Gomoku modes (0-2): 3-5 in a row
+    squaresInRow = currentGameMode + 3; // 3, 4, or 5
+  }
+  
+  // Apply pattern to all servos (similar to checkerboard pattern)
+  for (int row = 0; row < GRID_SIZE; row++) {
+    for (int col = 0; col < GRID_SIZE; col++) {
+      int servoIndex = row * GRID_SIZE + col;
+      ServoState targetState = STATE_NONE;
+      
+      if (isConnect4) {
+        // Connect 4: show pattern on bottom row
+        uint8_t startCol = (GRID_SIZE - squaresInRow) / 2;
+        if (row == GRID_SIZE - 1 && col >= startCol && col < startCol + squaresInRow) {
+          targetState = STATE_X;
+        }
+      } else {
+        // Gomoku: show pattern on diagonal
+        uint8_t startRow = 0;
+        uint8_t startCol = 0;
+        if (squaresInRow == 3) {
+          startRow = 1;
+          startCol = 1;
+        }
+        
+        if (row >= startRow && row < startRow + squaresInRow && 
+            col >= startCol && col < startCol + squaresInRow && 
+            row == col) {
+          targetState = STATE_X;
+        }
+      }
+      
+      // Update if state changed
+      if (gridState[servoIndex] != targetState) {
+        gridState[servoIndex] = targetState;
+        setServoPosition(servoIndex, servoPositions[targetState]);
+      }
+    }
+  }
+}
+
+/**
+ * Refresh gamemode display to maintain consistency
+ * Only updates servos that are not in the correct position
+ */
+void refreshGamemodeDisplay() {
+  uint8_t squaresInRow = currentGameMode + 3;
+  bool isConnect4 = (currentGameMode >= 3);
+  
+  // Use immediate movements for refresh
+  useImmediateMovements = true;
+  
+  if (isConnect4) {
+    // Connect 4: show pattern on bottom row
+    uint8_t startCol = (GRID_SIZE - squaresInRow) / 2;
+    for (uint8_t i = 0; i < squaresInRow; i++) {
+      int col = startCol + i;
+      if (col < GRID_SIZE) {
+        int servoIndex = (GRID_SIZE - 1) * GRID_SIZE + col;
+        // Only update if state doesn't match
+        if (gridState[servoIndex] != STATE_X) {
+          gridState[servoIndex] = STATE_X;
+          setServoPosition(servoIndex, servoPositions[STATE_X]);
+        }
+      }
+    }
+    // Clear other positions
+    for (int i = 0; i < TOTAL_SERVOS; i++) {
+      int row = i / GRID_SIZE;
+      int col = i % GRID_SIZE;
+      bool shouldBeX = (row == GRID_SIZE - 1 && col >= (GRID_SIZE - squaresInRow) / 2 && 
+                        col < (GRID_SIZE - squaresInRow) / 2 + squaresInRow);
+      if (!shouldBeX && gridState[i] != STATE_NONE) {
+        gridState[i] = STATE_NONE;
+        setServoPosition(i, servoPositions[STATE_NONE]);
+      }
+    }
+  } else {
+    // Gomoku: show pattern on diagonal
+    uint8_t startRow = 0;
+    uint8_t startCol = 0;
+    if (squaresInRow == 3) {
+      startRow = 1;
+      startCol = 1;
+    }
+    
+    // Update pattern positions
+    for (uint8_t i = 0; i < squaresInRow; i++) {
+      int row = startRow + i;
+      int col = startCol + i;
+      if (row < GRID_SIZE && col < GRID_SIZE) {
+        int servoIndex = row * GRID_SIZE + col;
+        if (gridState[servoIndex] != STATE_X) {
+          gridState[servoIndex] = STATE_X;
+          setServoPosition(servoIndex, servoPositions[STATE_X]);
+        }
+      }
+    }
+    // Clear other positions
+    for (int i = 0; i < TOTAL_SERVOS; i++) {
+      int row = i / GRID_SIZE;
+      int col = i % GRID_SIZE;
+      bool shouldBeX = false;
+      if (squaresInRow == 3) {
+        shouldBeX = (row >= 1 && row < 4 && col >= 1 && col < 4 && row == col);
+      } else {
+        shouldBeX = (row == col && row < squaresInRow);
+      }
+      if (!shouldBeX && gridState[i] != STATE_NONE) {
+        gridState[i] = STATE_NONE;
+        setServoPosition(i, servoPositions[STATE_NONE]);
+      }
+    }
+  }
+  
+  useImmediateMovements = false;
+  processMovementQueue();
 }
 
 /**
@@ -289,7 +475,7 @@ void initializeGame() {
  */
 void setGridState(int row, int col, ServoState state) {
   if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
-    Serial.println("Error: Grid coordinates out of range");
+    Serial.println(F("Error: Grid coordinates out of range"));
     return;
   }
   
@@ -376,10 +562,16 @@ void enqueueMovement(uint8_t servoIndex, uint16_t position) {
     movementQueue[queueTail].servoIndex = servoIndex;
     movementQueue[queueTail].position = position;
     
-    // Schedule start time with random delay (10-100ms)
-    // For movements queued at the same time, use the last scheduled time to accumulate delays
     unsigned long currentTime = millis();
-    unsigned long staggerDelay = random(10, 101);  // 10-100ms random delay
+    unsigned long staggerDelay;
+    
+    if (useImmediateMovements) {
+      // For gamemode display, use very short delays (0-5ms) for immediate feedback
+      staggerDelay = random(0, 6);
+    } else {
+      // Normal game play: use random delay (10-100ms)
+      staggerDelay = random(10, 101);
+    }
     
     // If this is the first movement or we're starting fresh, use current time
     // Otherwise, accumulate delay from the last scheduled time
@@ -402,6 +594,21 @@ void enqueueMovement(uint8_t servoIndex, uint16_t position) {
     
     queueTail = (queueTail + 1) % MOVEMENT_QUEUE_SIZE;
     queueSize++;
+  }
+}
+
+/**
+ * Clear the movement queue completely
+ */
+void clearMovementQueue() {
+  queueHead = 0;
+  queueTail = 0;
+  queueSize = 0;
+  lastMovementStartTime = 0;
+  
+  // Clear all active movements
+  for (int i = 0; i < MAX_CONCURRENT_SERVO_MOVEMENTS; i++) {
+    activeMovements[i].active = false;
   }
 }
 
@@ -495,12 +702,12 @@ void setServoPosition(int servoIndex, int position) {
  * Display current game state in serial monitor
  */
 void displayGameState() {
-  Serial.println("\nCurrent Game State:");
-  Serial.println("  0 1 2 3 4");
+  Serial.println(F("\nCurrent Game State:"));
+  Serial.println(F("  0 1 2 3 4"));
   
   for (int row = 0; row < GRID_SIZE; row++) {
     Serial.print(row);
-    Serial.print(" ");
+    Serial.print(' ');
     for (int col = 0; col < GRID_SIZE; col++) {
       int servoIndex = row * GRID_SIZE + col;
       char piece = ' ';
@@ -508,31 +715,31 @@ void displayGameState() {
       else if (gridState[servoIndex] == STATE_O) piece = 'O';
       
       if (row == cursorRow && col == cursorCol) {
-        Serial.print("[");
+        Serial.print('[');
         Serial.print(piece);
-        Serial.print("]");
+        Serial.print(']');
       } else {
-        Serial.print(" ");
+        Serial.print(' ');
         Serial.print(piece);
-        Serial.print(" ");
+        Serial.print(' ');
       }
     }
     Serial.println();
   }
-  Serial.print("Current Player: ");
-  Serial.println(currentPlayer == STATE_X ? "X" : "O");
-  Serial.print("Cursor: (");
+  Serial.print(F("Current Player: "));
+  Serial.println(currentPlayer == STATE_X ? F("X") : F("O"));
+  Serial.print(F("Cursor: ("));
   Serial.print(cursorRow);
-  Serial.print(",");
+  Serial.print(',');
   Serial.print(cursorCol);
-  Serial.println(")\n");
+  Serial.println(F(")\n"));
 }
 
 /**
  * Print board state (- for empty, x for X, o for O)
  */
 void printBoard() {
-  Serial.println("\n=== BOARD STATE ===");
+  Serial.println(F("\n=== BOARD STATE ==="));
   for (int row = 0; row < GRID_SIZE; row++) {
     for (int col = 0; col < GRID_SIZE; col++) {
       int servoIndex = row * GRID_SIZE + col;
@@ -541,18 +748,18 @@ void printBoard() {
       else if (gridState[servoIndex] == STATE_O) piece = 'o';
       
       Serial.print(piece);
-      if (col < GRID_SIZE - 1) Serial.print(" ");
+      if (col < GRID_SIZE - 1) Serial.print(' ');
     }
     Serial.println();
   }
-  Serial.print("Current Player: ");
-  Serial.println(currentPlayer == STATE_X ? "X" : "O");
-  Serial.print("Cursor: (");
+  Serial.print(F("Current Player: "));
+  Serial.println(currentPlayer == STATE_X ? F("X") : F("O"));
+  Serial.print(F("Cursor: ("));
   Serial.print(cursorRow);
-  Serial.print(",");
+  Serial.print(',');
   Serial.print(cursorCol);
-  Serial.println(")");
-  Serial.println("==================\n");
+  Serial.println(F(")"));
+  Serial.println(F("==================\n"));
 }
 
 /**
@@ -617,35 +824,61 @@ void checkButtonInput() {
  * Handle select button press
  */
 void handleSelectButton() {
-  if (gameActive) {
+  if (gameModeState == STATE_IDLE) {
+    // First press: enter game select mode
+    enterGameSelect();
+  } else if (gameModeState == STATE_GAME_SELECT) {
+    // Second press: start the game
+    startGame();
+  } else if (gameModeState == STATE_ACTIVE && gameActive) {
     // During active game, select button makes a move
     makeMove();
   }
-  // If game is not active, select button does nothing
 }
 
 /**
  * Handle reset/start button press
  */
 void handleResetStartButton() {
-  if (!gameActive) {
-    // If game is not active, start the game
-    startGame();
-  } else {
-    // If game is active, reset the game
-    resetGame();
-  }
+  // Reset button always goes back to idle
+  resetGame();
 }
 
 /**
  * Process game input commands
  */
 void processGameInput(char command, ServoState player) {
-  if (!gameActive) {
-    // Only handle start command when game is inactive
+  if (gameModeState == STATE_IDLE) {
+    // Handle select to enter game select mode
     if (command == 's') {
+      enterGameSelect();
+    }
+    return;
+  }
+  
+  if (gameModeState == STATE_GAME_SELECT) {
+    // Handle gamemode selection
+    if (command == 'l' || command == 'x' || command == 'o') {
+      // Left/X/O buttons: decrease gamemode
+      if (currentGameMode > 0) {
+        currentGameMode--;
+        lastDisplayedGameMode = 255; // Force update
+      }
+    } else if (command == 'r') {
+      // Right button: increase gamemode
+      if (currentGameMode < 5) {
+        currentGameMode++;
+        lastDisplayedGameMode = 255; // Force update
+      }
+    } else if (command == 's') {
+      // Select: start game
       startGame();
     }
+    return;
+  }
+  
+  // STATE_ACTIVE - game is running
+  if (!gameActive) {
     return;
   }
   
@@ -654,18 +887,39 @@ void processGameInput(char command, ServoState player) {
     return;
   }
   
+  // Check if Connect 4 mode
+  bool isConnect4 = (currentGameMode >= 3);
+  
   switch (command) {
-    case 'u': // Up
-      moveCursor(-1, 0);
+    case 'u': // Up (only for Gomoku)
+      if (!isConnect4) {
+        moveCursor(-1, 0);
+      }
       break;
-    case 'd': // Down
-      moveCursor(1, 0);
+    case 'd': // Down (only for Gomoku)
+      if (!isConnect4) {
+        moveCursor(1, 0);
+      }
       break;
     case 'l': // Left
-      moveCursor(0, -1);
+      if (isConnect4) {
+        // Connect 4: move cursor left in top row
+        if (cursorCol > 0) {
+          moveCursor(0, -1);
+        }
+      } else {
+        moveCursor(0, -1);
+      }
       break;
     case 'r': // Right
-      moveCursor(0, 1);
+      if (isConnect4) {
+        // Connect 4: move cursor right in top row
+        if (cursorCol < GRID_SIZE - 1) {
+          moveCursor(0, 1);
+        }
+      } else {
+        moveCursor(0, 1);
+      }
       break;
     case 's': // Select
       makeMove();
@@ -674,30 +928,70 @@ void processGameInput(char command, ServoState player) {
 }
 
 /**
+ * Get effective board size based on gamemode
+ */
+uint8_t getBoardSize() {
+  if (currentGameMode == 0 && winCondition == 3) {
+    // 3 in a row gomoku: limit to 3x3
+    return 3;
+  }
+  return GRID_SIZE;
+}
+
+/**
+ * Check if a position is within valid board bounds
+ */
+bool isValidPosition(int row, int col) {
+  uint8_t boardSize = getBoardSize();
+  if (currentGameMode == 0 && winCondition == 3) {
+    // 3x3 board: row/col 1-3 (indices 1-3)
+    return row >= 1 && row < boardSize + 1 && col >= 1 && col < boardSize + 1;
+  }
+  return row >= 0 && row < boardSize && col >= 0 && col < boardSize;
+}
+
+/**
  * Move cursor to new position
  */
 void moveCursor(int deltaRow, int deltaCol) {
+  bool isConnect4 = (currentGameMode >= 3);
   int newRow = cursorRow + deltaRow;
   int newCol = cursorCol + deltaCol;
   
-  // Check bounds
-  if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE) {
-    // Reset old cursor position to its base/idle position
-    int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
-    int oldBasePosition = servoPositions[gridState[oldServoIndex]];
-    setServoPosition(oldServoIndex, oldBasePosition);
-    
-    // Update cursor position
-    cursorRow = newRow;
-    cursorCol = newCol;
-    
-    // Reset new cursor position to its base/idle position before starting wiggle
-    int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
-    int newBasePosition = servoPositions[gridState[newServoIndex]];
-    setServoPosition(newServoIndex, newBasePosition);
-    
-    // Start wiggle animation at new position
-    startCursorWiggle();
+  if (isConnect4) {
+    // Connect 4: cursor stays in top row (row 0)
+    newRow = 0;
+    // Check column bounds
+    if (newCol >= 0 && newCol < GRID_SIZE) {
+      int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+      int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+      setServoPosition(oldServoIndex, oldBasePosition);
+      
+      cursorRow = newRow;
+      cursorCol = newCol;
+      
+      int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+      int newBasePosition = servoPositions[gridState[newServoIndex]];
+      setServoPosition(newServoIndex, newBasePosition);
+      
+      startCursorWiggle();
+    }
+  } else {
+    // Gomoku: check bounds with board size limits
+    if (isValidPosition(newRow, newCol)) {
+      int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+      int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+      setServoPosition(oldServoIndex, oldBasePosition);
+      
+      cursorRow = newRow;
+      cursorCol = newCol;
+      
+      int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+      int newBasePosition = servoPositions[gridState[newServoIndex]];
+      setServoPosition(newServoIndex, newBasePosition);
+      
+      startCursorWiggle();
+    }
   }
 }
 
@@ -705,21 +999,105 @@ void moveCursor(int deltaRow, int deltaCol) {
  * Make a move at current cursor position
  */
 void makeMove() {
-  int servoIndex = cursorRow * GRID_SIZE + cursorCol;
+  bool isConnect4 = (currentGameMode >= 3);
+  int targetRow = cursorRow;
+  int targetCol = cursorCol;
+  
+  if (isConnect4) {
+    // Connect 4: find lowest empty position in selected column
+    targetRow = -1;
+    for (int row = GRID_SIZE - 1; row >= 0; row--) {
+      int idx = row * GRID_SIZE + cursorCol;
+      if (gridState[idx] == STATE_NONE) {
+        targetRow = row;
+        break;
+      }
+    }
+    
+    // Check if column is full
+    if (targetRow == -1) {
+      sendFeedback('n', currentPlayer); // Column full
+      return;
+    }
+  }
+  
+  int servoIndex = targetRow * GRID_SIZE + targetCol;
   
   // Check if position is empty
   if (gridState[servoIndex] == STATE_NONE) {
     // Valid move - capture current player before switching
     ServoState movePlayer = currentPlayer;
-    setGridState(cursorRow, cursorCol, currentPlayer);
-    sendFeedback('y', movePlayer); // Yes - move is valid, send to player who made the move
+    
+    // For Connect 4, animate the drop
+    if (isConnect4) {
+      // Enable immediate movements for animation to avoid timing issues
+      useImmediateMovements = true;
+      
+      // Animate piece falling from top to target position
+      for (int row = 0; row <= targetRow; row++) {
+        int animIdx = row * GRID_SIZE + targetCol;
+        if (row < targetRow) {
+          // Show piece briefly at each position
+          // Clear any existing piece state first
+          if (gridState[animIdx] != STATE_NONE) {
+            gridState[animIdx] = STATE_NONE;
+            setServoPosition(animIdx, servoPositions[STATE_NONE]);
+            processMovementQueue();
+            delay(20);
+          }
+          
+          // Show piece at this position
+          gridState[animIdx] = currentPlayer;
+          setServoPosition(animIdx, servoPositions[currentPlayer]);
+          processMovementQueue();
+          delay(50);
+          
+          // Clear the position (ensure it's actually cleared)
+          gridState[animIdx] = STATE_NONE;
+          setServoPosition(animIdx, servoPositions[STATE_NONE]);
+          processMovementQueue();
+          delay(20);
+        } else {
+          // Final position - ensure all intermediate positions are cleared first
+          for (int clearRow = 0; clearRow < targetRow; clearRow++) {
+            int clearIdx = clearRow * GRID_SIZE + targetCol;
+            if (gridState[clearIdx] != STATE_NONE) {
+              gridState[clearIdx] = STATE_NONE;
+              setServoPosition(clearIdx, servoPositions[STATE_NONE]);
+            }
+          }
+          processMovementQueue();
+          delay(30);
+          
+          // Set final position
+          setGridState(targetRow, targetCol, currentPlayer);
+        }
+      }
+      
+      // Disable immediate movements mode
+      useImmediateMovements = false;
+      
+      // Final cleanup: ensure all intermediate positions are definitely cleared
+      for (int row = 0; row < targetRow; row++) {
+        int idx = row * GRID_SIZE + targetCol;
+        if (gridState[idx] != STATE_NONE) {
+          gridState[idx] = STATE_NONE;
+          setServoPosition(idx, servoPositions[STATE_NONE]);
+        }
+      }
+      processMovementQueue();
+    } else {
+      setGridState(targetRow, targetCol, currentPlayer);
+    }
+    
+    sendFeedback('y', movePlayer); // Yes - move is valid
     
     // Print board state after move
     printBoard();
     
     // Check for win anywhere on the board
     if (checkBoardForWin(currentPlayer)) {
-      startWinSequence(cursorRow, cursorCol, currentPlayer);
+      startWinSequence(targetRow, targetCol, currentPlayer);
       return;
     }
     
@@ -730,11 +1108,16 @@ void makeMove() {
     sendTurnNotification();
     
     // Move cursor to next available position
-    moveToNextEmpty();
+    if (isConnect4) {
+      // Connect 4: cursor stays at top row, move to next empty column
+      moveToNextEmptyConnect4();
+    } else {
+      moveToNextEmpty();
+    }
     
   } else {
     // Invalid move - position already taken
-    sendFeedback('n', currentPlayer); // No - move is invalid, send to current player
+    sendFeedback('n', currentPlayer); // No - move is invalid
   }
 }
 
@@ -850,56 +1233,86 @@ void updateOccupiedWiggle(int servoIndex, unsigned long currentTime) {
 }
 
 /**
- * Move cursor to next empty position
+ * Move cursor to next empty position for Connect 4
  */
-void moveToNextEmpty() {
-  // Reset old cursor position to its base/idle position
+void moveToNextEmptyConnect4() {
+  // Reset old cursor position
   int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
   int oldBasePosition = servoPositions[gridState[oldServoIndex]];
   setServoPosition(oldServoIndex, oldBasePosition);
   
-  // Always move cursor to position (0,0) regardless of availability
-  cursorRow = 0;
-  cursorCol = 0;
-  
-  // Reset new cursor position to its base/idle position before starting wiggle
-  int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
-  int newBasePosition = servoPositions[gridState[newServoIndex]];
-  setServoPosition(newServoIndex, newBasePosition);
-  
-  startCursorWiggle();
-  
-  // Check if board is full (all positions taken)
-  bool boardFull = true;
-  for (int i = 0; i < TOTAL_SERVOS; i++) {
-    if (gridState[i] == STATE_NONE) {
-      boardFull = false;
-      break;
+  // Find next column with space
+  for (int col = 0; col < GRID_SIZE; col++) {
+    for (int row = GRID_SIZE - 1; row >= 0; row--) {
+      int idx = row * GRID_SIZE + col;
+      if (gridState[idx] == STATE_NONE) {
+        cursorRow = 0;
+        cursorCol = col;
+        int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+        int newBasePosition = servoPositions[gridState[newServoIndex]];
+        setServoPosition(newServoIndex, newBasePosition);
+        startCursorWiggle();
+        return;
+      }
     }
   }
   
-  if (boardFull) {
-    // Board is full - game is a draw
-    gameActive = false;
-    Serial.println("Game is a draw!");
-  }
+  // Board is full - reset the game
+  Serial.println(F("Board is full! Resetting game..."));
+  resetGame();
 }
 
 /**
- * Check for win condition (WIN_CONDITION in a row) from a specific position
+ * Move cursor to next empty position
+ */
+void moveToNextEmpty() {
+  // Reset old cursor position
+  int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+  int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+  setServoPosition(oldServoIndex, oldBasePosition);
+  
+  // Find first valid empty position
+  uint8_t boardSize = getBoardSize();
+  uint8_t startRow = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t startCol = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t endRow = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  uint8_t endCol = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  
+  for (int row = startRow; row < endRow; row++) {
+    for (int col = startCol; col < endCol; col++) {
+      int idx = row * GRID_SIZE + col;
+      if (gridState[idx] == STATE_NONE) {
+        cursorRow = row;
+        cursorCol = col;
+        int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+        int newBasePosition = servoPositions[gridState[newServoIndex]];
+        setServoPosition(newServoIndex, newBasePosition);
+        startCursorWiggle();
+        return;
+      }
+    }
+  }
+  
+  // Board is full - reset the game
+  Serial.println(F("Board is full! Resetting game..."));
+  resetGame();
+}
+
+/**
+ * Check for win condition (winCondition in a row) from a specific position
  */
 bool checkWin(int row, int col, ServoState player) {
   // Check horizontal
-  if (countInDirection(row, col, 0, 1, player) >= WIN_CONDITION) return true;
+  if (countInDirection(row, col, 0, 1, player) >= winCondition) return true;
   
   // Check vertical
-  if (countInDirection(row, col, 1, 0, player) >= WIN_CONDITION) return true;
+  if (countInDirection(row, col, 1, 0, player) >= winCondition) return true;
   
   // Check diagonal
-  if (countInDirection(row, col, 1, 1, player) >= WIN_CONDITION) return true;
+  if (countInDirection(row, col, 1, 1, player) >= winCondition) return true;
   
-  // Check diagonal
-  if (countInDirection(row, col, 1, -1, player) >= WIN_CONDITION) return true;
+  // Check anti-diagonal
+  if (countInDirection(row, col, 1, -1, player) >= winCondition) return true;
   
   return false;
 }
@@ -908,9 +1321,15 @@ bool checkWin(int row, int col, ServoState player) {
  * Check for win condition anywhere on the board
  */
 bool checkBoardForWin(ServoState player) {
+  uint8_t boardSize = getBoardSize();
+  uint8_t startRow = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t startCol = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t endRow = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  uint8_t endCol = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  
   // Check every position on the board for a win
-  for (int row = 0; row < GRID_SIZE; row++) {
-    for (int col = 0; col < GRID_SIZE; col++) {
+  for (int row = startRow; row < endRow; row++) {
+    for (int col = startCol; col < endCol; col++) {
       if (gridState[row * GRID_SIZE + col] == player) {
         if (checkWin(row, col, player)) {
           return true;
@@ -947,7 +1366,7 @@ int countInDirection(int startRow, int startCol, int deltaRow, int deltaCol, Ser
   // Count in positive direction
   int row = startRow + deltaRow;
   int col = startCol + deltaCol;
-  while (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE && 
+  while (isValidPosition(row, col) && 
          gridState[row * GRID_SIZE + col] == player) {
     count++;
     row += deltaRow;
@@ -957,7 +1376,7 @@ int countInDirection(int startRow, int startCol, int deltaRow, int deltaCol, Ser
   // Count in negative direction
   row = startRow - deltaRow;
   col = startCol - deltaCol;
-  while (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE && 
+  while (isValidPosition(row, col) && 
          gridState[row * GRID_SIZE + col] == player) {
     count++;
     row -= deltaRow;
@@ -971,35 +1390,66 @@ int countInDirection(int startRow, int startCol, int deltaRow, int deltaCol, Ser
  * Start the game
  */
 void startGame() {
-  if (gameStarted) return;
+  if (gameStarted && gameModeState == STATE_ACTIVE) return;
   
-  Serial.println("Starting Gomoku game!");
+  // Set win condition based on gamemode
+  // Gomoku modes (0-2): 3-5 in a row
+  // Connect 4 modes (3-5): 3-5 in a row (map 3-5 to 0-2, then add 3)
+  if (currentGameMode < 3) {
+    winCondition = currentGameMode + 3; // Gomoku: 3-5
+  } else {
+    winCondition = currentGameMode - 3 + 3; // Connect 4: 3-5 (simplifies to currentGameMode - 0)
+  }
   
-  // Clear the board
+  bool isConnect4 = (currentGameMode >= 3);
+  
+  Serial.print(F("Starting "));
+  if (isConnect4) {
+    Serial.print(F("Connect 4"));
+  } else {
+    Serial.print(F("Gomoku"));
+  }
+  Serial.print(F(" game ("));
+  Serial.print(winCondition);
+  Serial.println(F(" in a row)!"));
+  
+  // Clear the board completely first
   for (int i = 0; i < TOTAL_SERVOS; i++) {
     gridState[i] = STATE_NONE;
     setServoPosition(i, servoPositions[STATE_NONE]);
   }
+  delay(500); // Allow servos to reach cleared position before starting game
   
   // Set game state
+  gameModeState = STATE_ACTIVE;
   gameActive = true;
   gameStarted = true;
-  cursorRow = 0;
-  cursorCol = 0;
   currentPlayer = STATE_X;
+  
+  // Set initial cursor position
+  if (isConnect4) {
+    // Connect 4: cursor at top row, first empty column
+    cursorRow = 0;
+    cursorCol = 0;
+  } else {
+    // Gomoku: start at first valid position
+    if (currentGameMode == 0 && winCondition == 3) {
+      // 3x3 board: start at (1,1)
+      cursorRow = 1;
+      cursorCol = 1;
+    } else {
+      cursorRow = 0;
+      cursorCol = 0;
+    }
+  }
   
   delay(500); // Brief pause
   
-  // Start cursor wiggle at top-left
+  // Start cursor wiggle
   startCursorWiggle();
-  
-  // Check for any existing wins before starting
-  checkForWins();
   
   // Notify first player (X) that it's their turn
   sendTurnNotification();
-  
-  Serial.println("Player X starts at position (0,0)");
 }
 
 /**
@@ -1041,9 +1491,9 @@ void updateCheckerboardPattern() {
  * Start win sequence animation
  */
 void startWinSequence(int winRow, int winCol, ServoState winner) {
-  Serial.print("Player ");
-  Serial.print(winner == STATE_X ? "X" : "O");
-  Serial.println(" wins! Starting win sequence...");
+  Serial.print(F("Player "));
+  Serial.print(winner == STATE_X ? F("X") : F("O"));
+  Serial.println(F(" wins! Starting win sequence..."));
   
   winSequenceActive = true;
   winSequenceStartTime = millis();
@@ -1110,7 +1560,7 @@ void animateWinStep() {
  * End win sequence and reset game
  */
 void endWinSequence() {
-  Serial.println("Win sequence complete. Resetting game...");
+  Serial.println(F("Win sequence complete. Resetting game..."));
   
   // Reset win sequence state
   winSequenceActive = false;
@@ -1124,6 +1574,6 @@ void endWinSequence() {
  * Reset game to initial state
  */
 void resetGame() {
-  Serial.println("Resetting game...");
+  Serial.println(F("Resetting game..."));
   initializeGame();
 }
