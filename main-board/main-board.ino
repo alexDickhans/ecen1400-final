@@ -31,7 +31,7 @@
 
 // Create PCA9685 objects
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x40); // First board (A0 bridged)
-Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x41); // Second board (all grounded)
+Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x60); // Second board (all grounded)
 
 // AltSoftSerial for communication with X player controller (more reliable)
 AltSoftSerial playerXSerial; // Uses pins 8/9 (RX/TX)
@@ -483,8 +483,21 @@ void moveCursor(int deltaRow, int deltaCol) {
   
   // Check bounds
   if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE) {
+    // Reset old cursor position to its base/idle position
+    int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+    int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+    setServoPosition(oldServoIndex, oldBasePosition);
+    
+    // Update cursor position
     cursorRow = newRow;
     cursorCol = newCol;
+    
+    // Reset new cursor position to its base/idle position before starting wiggle
+    int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+    int newBasePosition = servoPositions[gridState[newServoIndex]];
+    setServoPosition(newServoIndex, newBasePosition);
+    
+    // Start wiggle animation at new position
     startCursorWiggle();
   }
 }
@@ -633,9 +646,20 @@ void updateOccupiedWiggle(int servoIndex, unsigned long currentTime) {
  * Move cursor to next empty position
  */
 void moveToNextEmpty() {
+  // Reset old cursor position to its base/idle position
+  int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+  int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+  setServoPosition(oldServoIndex, oldBasePosition);
+  
   // Always move cursor to position (0,0) regardless of availability
   cursorRow = 0;
   cursorCol = 0;
+  
+  // Reset new cursor position to its base/idle position before starting wiggle
+  int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+  int newBasePosition = servoPositions[gridState[newServoIndex]];
+  setServoPosition(newServoIndex, newBasePosition);
+  
   startCursorWiggle();
   
   // Check if board is full (all positions taken)
