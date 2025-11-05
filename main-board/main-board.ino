@@ -1037,47 +1037,61 @@ void makeMove() {
       for (int row = 0; row <= targetRow; row++) {
         int animIdx = row * GRID_SIZE + targetCol;
         if (row < targetRow) {
-          // Show piece briefly at each position
-          // Clear any existing piece state first
-          if (gridState[animIdx] != STATE_NONE) {
-            gridState[animIdx] = STATE_NONE;
-            setServoPosition(animIdx, servoPositions[STATE_NONE]);
+          // Show piece at this position
+          gridState[animIdx] = currentPlayer;
+          setServoPosition(animIdx, servoPositions[currentPlayer]);
+          
+          // Process queue multiple times to ensure movement starts
+          for (int i = 0; i < 5; i++) {
+            processMovementQueue();
+            delay(10);
+          }
+          
+          // Wait longer for piece to be visible (slower fall)
+          delay(200);
+          
+          // Clear the position - ensure it's properly cleared
+          gridState[animIdx] = STATE_NONE;
+          setServoPosition(animIdx, servoPositions[STATE_NONE]);
+          
+          // Process queue multiple times to ensure clearing happens
+          for (int i = 0; i < 5; i++) {
+            processMovementQueue();
+            delay(10);
+          }
+          
+          // Wait for clearing to complete
+          delay(100);
+        } else {
+          // Final position reached
+          // First, ensure all intermediate positions are definitely cleared
+          for (int clearRow = 0; clearRow < targetRow; clearRow++) {
+            int clearIdx = clearRow * GRID_SIZE + targetCol;
+            gridState[clearIdx] = STATE_NONE;
+            setServoPosition(clearIdx, servoPositions[STATE_NONE]);
+          }
+          
+          // Process queue multiple times to ensure all clears complete
+          for (int i = 0; i < 10; i++) {
             processMovementQueue();
             delay(20);
           }
           
-          // Show piece at this position
-          gridState[animIdx] = currentPlayer;
-          setServoPosition(animIdx, servoPositions[currentPlayer]);
-          processMovementQueue();
-          delay(50);
-          
-          // Clear the position (ensure it's actually cleared)
-          gridState[animIdx] = STATE_NONE;
-          setServoPosition(animIdx, servoPositions[STATE_NONE]);
-          processMovementQueue();
-          delay(20);
-        } else {
-          // Final position - ensure all intermediate positions are cleared first
-          for (int clearRow = 0; clearRow < targetRow; clearRow++) {
-            int clearIdx = clearRow * GRID_SIZE + targetCol;
-            if (gridState[clearIdx] != STATE_NONE) {
-              gridState[clearIdx] = STATE_NONE;
-              setServoPosition(clearIdx, servoPositions[STATE_NONE]);
-            }
-          }
-          processMovementQueue();
-          delay(30);
-          
-          // Set final position
+          // Now set final position immediately (no delay)
           setGridState(targetRow, targetCol, currentPlayer);
+          
+          // Process queue to ensure final position is set
+          for (int i = 0; i < 5; i++) {
+            processMovementQueue();
+            delay(10);
+          }
         }
       }
       
       // Disable immediate movements mode
       useImmediateMovements = false;
       
-      // Final cleanup: ensure all intermediate positions are definitely cleared
+      // Final safety cleanup: double-check all intermediate positions are cleared
       for (int row = 0; row < targetRow; row++) {
         int idx = row * GRID_SIZE + targetCol;
         if (gridState[idx] != STATE_NONE) {
@@ -1085,7 +1099,13 @@ void makeMove() {
           setServoPosition(idx, servoPositions[STATE_NONE]);
         }
       }
-      processMovementQueue();
+      
+      // Final queue processing to ensure cleanup completes
+      for (int i = 0; i < 10; i++) {
+        processMovementQueue();
+        delay(20);
+      }
+      delay(100);
     } else {
       setGridState(targetRow, targetCol, currentPlayer);
     }
@@ -1101,19 +1121,21 @@ void makeMove() {
       return;
     }
     
+    // Check if board is full with no winner (for all game modes)
+    if (isBoardFull()) {
+      Serial.println(F("Board is full with no winner. Cancelling game..."));
+      resetGame();
+      return;
+    }
+    
     // Switch players
     currentPlayer = (currentPlayer == STATE_X) ? STATE_O : STATE_X;
     
+    // Reset cursor to correct zero position for this game type
+    resetCursorToZeroPosition();
+    
     // Notify the new player that it's their turn
     sendTurnNotification();
-    
-    // Move cursor to next available position
-    if (isConnect4) {
-      // Connect 4: cursor stays at top row, move to next empty column
-      moveToNextEmptyConnect4();
-    } else {
-      moveToNextEmpty();
-    }
     
   } else {
     // Invalid move - position already taken
@@ -1341,6 +1363,30 @@ bool checkBoardForWin(ServoState player) {
 }
 
 /**
+ * Check if the board is full (all valid squares filled)
+ * Works for all game modes (tic-tac-toe, gomoku, connect 4)
+ */
+bool isBoardFull() {
+  uint8_t boardSize = getBoardSize();
+  uint8_t startRow = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t startCol = (currentGameMode == 0 && winCondition == 3) ? 1 : 0;
+  uint8_t endRow = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  uint8_t endCol = (currentGameMode == 0 && winCondition == 3) ? boardSize + 1 : boardSize;
+  
+  // Check all valid positions for the current game mode
+  for (int row = startRow; row < endRow; row++) {
+    for (int col = startCol; col < endCol; col++) {
+      int servoIndex = row * GRID_SIZE + col;
+      if (gridState[servoIndex] == STATE_NONE) {
+        return false; // Found an empty square
+      }
+    }
+  }
+  
+  return true; // All valid squares are filled
+}
+
+/**
  * Check for wins for both players and handle if found
  */
 void checkForWins() {
@@ -1427,21 +1473,7 @@ void startGame() {
   currentPlayer = STATE_X;
   
   // Set initial cursor position
-  if (isConnect4) {
-    // Connect 4: cursor at top row, first empty column
-    cursorRow = 0;
-    cursorCol = 0;
-  } else {
-    // Gomoku: start at first valid position
-    if (currentGameMode == 0 && winCondition == 3) {
-      // 3x3 board: start at (1,1)
-      cursorRow = 1;
-      cursorCol = 1;
-    } else {
-      cursorRow = 0;
-      cursorCol = 0;
-    }
-  }
+  resetCursorToZeroPosition();
   
   delay(500); // Brief pause
   
@@ -1450,6 +1482,43 @@ void startGame() {
   
   // Notify first player (X) that it's their turn
   sendTurnNotification();
+}
+
+/**
+ * Reset cursor to the correct zero position based on game type
+ */
+void resetCursorToZeroPosition() {
+  // Reset old cursor position visually
+  int oldServoIndex = cursorRow * GRID_SIZE + cursorCol;
+  int oldBasePosition = servoPositions[gridState[oldServoIndex]];
+  setServoPosition(oldServoIndex, oldBasePosition);
+  
+  // Determine game type
+  bool isConnect4 = (currentGameMode >= 3);
+  
+  // Set cursor to correct zero position for this game type
+  // For tic-tac-toe (3-in-a-row gomoku), valid board is at indices 1-3, so start at (1,1)
+  // For Connect 4, always start at column 0 (row 0, col 0)
+  // For all other games, start at (0,0)
+  if (currentGameMode == 0 && winCondition == 3) {
+    cursorRow = 1;
+    cursorCol = 1;
+  } else if (isConnect4) {
+    // Connect 4: always start at column 0
+    cursorRow = 0;
+    cursorCol = 0;
+  } else {
+    cursorRow = 0;
+    cursorCol = 0;
+  }
+  
+  // Update new cursor position visually
+  int newServoIndex = cursorRow * GRID_SIZE + cursorCol;
+  int newBasePosition = servoPositions[gridState[newServoIndex]];
+  setServoPosition(newServoIndex, newBasePosition);
+  
+  // Restart cursor wiggle
+  startCursorWiggle();
 }
 
 /**
