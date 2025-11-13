@@ -2,8 +2,8 @@
  * 5x5 Servo Grid Controller using 2 PCA9685 Boards
  * 
  * Board Configuration:
- * - First PCA9685: A0 bridged (address 0x40), controls servos 0-14 (first 15 servos)
- * - Second PCA9685: All address pins grounded (address 0x41), controls servos 15-24 (last 10 servos)
+ * - First PCA9685: Address 0x40, physical channels 6-15, controls grid servo indices 0-9 (first 10 squares)
+ * - Second PCA9685: Address 0x60, physical channels 1-15, controls grid servo indices 10-24 (next 15 squares)
  * 
  * Grid Layout (5x5):
  * Servo positions in grid:
@@ -14,14 +14,14 @@
  * 20 21 22 23 24
  * 
  * Servo Connection Ordering:
- * - First PCA9685 (0x40, A0 bridged):
- *   Channels 0-14 connect to servo indices 0-14
+ * - First PCA9685 (0x40):
+ *   Physical channels 6-15 connect to grid servo indices 0-9
  *   Grid mapping: Servo index = row * 5 + col
- *   Physical channels: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+ *   Physical channel = servoIndex + 6 (e.g., servoIndex 0 → channel 6, servoIndex 9 → channel 15)
  *   
- * - Second PCA9685 (0x41, all address pins grounded):
- *   Channels 0-9 connect to servo indices 15-24
- *   Physical channels: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 (map to grid indices 15-24)
+ * - Second PCA9685 (0x60):
+ *   Physical channels 1-15 connect to grid servo indices 10-24
+ *   Physical channel = servoIndex - 9 (e.g., servoIndex 10 → channel 1, servoIndex 24 → channel 15)
  */
 
 #include <Wire.h>
@@ -34,9 +34,9 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x40); // First board (A0
 Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(0x60); // Second board (all grounded)
 
 // AltSoftSerial for communication with X player controller (more reliable)
-AltSoftSerial playerXSerial; // Uses pins 8/9 (RX/TX)
+AltSoftSerial playerXSerial; // Uses pins 8/9 (RX green/TX yellow)
 // SoftwareSerial for communication with O player controller
-SoftwareSerial playerOSerial(5, 6); // RX, TX for O player controller
+SoftwareSerial playerOSerial(5, 6); // RX green, TX yellow for O player controller
 
 // Button pins
 #define SELECT_BUTTON_PIN 7
@@ -662,10 +662,17 @@ void processMovementQueue() {
     lastMovementStartTime = currentTime;
     
     // Execute the movement
-    if (movement.servoIndex < 15) {
-      pwm1.setPWM(movement.servoIndex, 0, movement.position);
-    } else {
-      uint8_t channel = movement.servoIndex - 15;
+    // First PCA9685 (0x40): handles servo indices 0-9 → physical channels 6-15
+    // Second PCA9685 (0x60): handles servo indices 10-24 → physical channels 1-15
+    if (movement.servoIndex >= 0 && movement.servoIndex <= 9) {
+      // First board: indices 0-9 map to channels 6-15
+      // Index 0 → channel 6, index 1 → channel 7, ..., index 9 → channel 15
+      uint8_t channel = movement.servoIndex + 6;
+      pwm1.setPWM(channel, 0, movement.position);
+    } else if (movement.servoIndex >= 10 && movement.servoIndex <= 24) {
+      // Second board: indices 10-24 map to channels 1-15
+      // Index 10 → channel 1, index 11 → channel 2, ..., index 24 → channel 15
+      uint8_t channel = movement.servoIndex - 9;
       pwm2.setPWM(channel, 0, movement.position);
     }
     
