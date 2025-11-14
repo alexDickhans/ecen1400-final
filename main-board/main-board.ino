@@ -662,23 +662,39 @@ void processMovementQueue() {
     lastMovementStartTime = currentTime;
     
     // Execute the movement
-    // First PCA9685 (0x40): handles servo indices 0-9 → physical channels 6-15
-    // Second PCA9685 (0x60): handles servo indices 10-24 → physical channels 1-15
-    if (movement.servoIndex >= 0 && movement.servoIndex <= 9) {
-      // First board: indices 0-9 map to channels 6-15
-      // Index 0 → channel 6, index 1 → channel 7, ..., index 9 → channel 15
-      uint8_t channel = movement.servoIndex + 6;
+    // Convert logical grid index to physical servo index (vertically mirrored)
+    uint8_t physicalIndex = getPhysicalServoIndex(movement.servoIndex);
+    
+    // First PCA9685 (0x40): handles physical servo indices 0-9 → physical channels 6-15
+    // Second PCA9685 (0x60): handles physical servo indices 10-24 → physical channels 1-15
+    if (physicalIndex >= 0 && physicalIndex <= 9) {
+      // First board: physical indices 0-9 map to channels 6-15
+      // Physical index 0 → channel 6, physical index 1 → channel 7, ..., physical index 9 → channel 15
+      uint8_t channel = physicalIndex + 6;
       pwm1.setPWM(channel, 0, movement.position);
-    } else if (movement.servoIndex >= 10 && movement.servoIndex <= 24) {
-      // Second board: indices 10-24 map to channels 1-15
-      // Index 10 → channel 1, index 11 → channel 2, ..., index 24 → channel 15
-      uint8_t channel = movement.servoIndex - 9;
+    } else if (physicalIndex >= 10 && physicalIndex <= 24) {
+      // Second board: physical indices 10-24 map to channels 1-15
+      // Physical index 10 → channel 1, physical index 11 → channel 2, ..., physical index 24 → channel 15
+      uint8_t channel = physicalIndex - 9;
       pwm2.setPWM(channel, 0, movement.position);
     }
     
     // Add to active movements
     addActiveMovement(movement.servoIndex, movement.position);
   }
+}
+
+/**
+ * Convert logical grid index to physical servo index (vertically mirrored)
+ * Mirrors along horizontal axis: row 0 ↔ row 4, row 1 ↔ row 3, row 2 stays same
+ * @param logicalIndex - Logical grid index (0-24)
+ * @return Physical servo index (0-24)
+ */
+uint8_t getPhysicalServoIndex(uint8_t logicalIndex) {
+  uint8_t row = logicalIndex / GRID_SIZE;
+  uint8_t col = logicalIndex % GRID_SIZE;
+  uint8_t mirroredRow = GRID_SIZE - 1 - row; // Mirror vertically
+  return mirroredRow * GRID_SIZE + col;
 }
 
 /**
