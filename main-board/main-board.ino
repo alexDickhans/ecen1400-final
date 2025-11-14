@@ -556,8 +556,26 @@ void addActiveMovement(uint8_t servoIndex, uint16_t position) {
 
 /**
  * Add a movement to the queue with staggered start time
+ * Waits until there's space in the queue before adding
  */
 void enqueueMovement(uint8_t servoIndex, uint16_t position) {
+  // Wait until there's space in the queue by processing it
+  int maxWaitIterations = 100; // Prevent infinite loops
+  int iterations = 0;
+  
+  while (queueSize >= MOVEMENT_QUEUE_SIZE && iterations < maxWaitIterations) {
+    // Process the queue to free up space
+    processMovementQueue();
+    iterations++;
+    
+    // Small delay to allow movements to start and free up slots
+    if (queueSize >= MOVEMENT_QUEUE_SIZE) {
+      delay(1);
+    }
+  }
+  
+  // If we still don't have space after waiting, something is wrong
+  // but we'll try to add anyway to prevent complete failure
   if (queueSize < MOVEMENT_QUEUE_SIZE) {
     movementQueue[queueTail].servoIndex = servoIndex;
     movementQueue[queueTail].position = position;
