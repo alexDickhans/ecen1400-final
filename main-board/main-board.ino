@@ -104,6 +104,8 @@ bool checkerboardState = false; // false = X pattern, true = O pattern
 
 // Gamemode display variables
 uint8_t lastDisplayedGameMode = 255; // Track last displayed gamemode (255 = not set)
+unsigned long lastGameModeChangeTime = 0; // Track when gamemode was last changed for timeout
+const unsigned long GAME_SELECT_TIMEOUT = 15000; // 15 seconds timeout
 
 // Win sequence variables
 bool winSequenceActive = false;
@@ -235,6 +237,12 @@ void loop() {
   }
   
   if (gameModeState == STATE_GAME_SELECT) {
+    // Check for timeout - if same gamemode for more than 15 seconds, return to idle
+    if (millis() - lastGameModeChangeTime >= GAME_SELECT_TIMEOUT) {
+      returnToIdle();
+      return;
+    }
+    
     // Show gamemode pattern on board (similar to checkerboard pattern)
     updateGamemodeDisplay();
     
@@ -326,6 +334,7 @@ void enterGameSelect() {
   currentGameMode = 0; // Start at first gamemode
   gameStarted = false; // Reset game started flag
   lastDisplayedGameMode = 255; // Force update on next loop
+  lastGameModeChangeTime = millis(); // Initialize timeout timer
 }
 
 /**
@@ -904,12 +913,14 @@ void processGameInput(char command, ServoState player) {
       if (currentGameMode > 0) {
         currentGameMode--;
         lastDisplayedGameMode = 255; // Force update
+        lastGameModeChangeTime = millis(); // Reset timeout timer
       }
     } else if (command == 'r') {
       // Right button: increase gamemode
       if (currentGameMode < 5) {
         currentGameMode++;
         lastDisplayedGameMode = 255; // Force update
+        lastGameModeChangeTime = millis(); // Reset timeout timer
       }
     } else if (command == 's') {
       // Select: start game
@@ -1678,6 +1689,22 @@ void endWinSequence() {
   
   // Reset game to initial state
   initializeGame();
+}
+
+/**
+ * Return to idle mode from game select (timeout)
+ */
+void returnToIdle() {
+  Serial.println(F("Game select timeout - returning to idle mode..."));
+  gameModeState = STATE_IDLE;
+  // Clear the board to show checkerboard pattern
+  for (int i = 0; i < TOTAL_SERVOS; i++) {
+    gridState[i] = STATE_NONE;
+    setServoPosition(i, servoPositions[STATE_NONE]);
+  }
+  // Reset checkerboard pattern timing
+  lastPatternTime = millis();
+  checkerboardState = false;
 }
 
 /**
