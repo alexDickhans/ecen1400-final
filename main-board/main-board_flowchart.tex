@@ -1,0 +1,86 @@
+\begin{center}
+\begin{tikzpicture}[
+    node distance = 0.35cm and 0.8cm,
+    auto,
+    font=\scriptsize,
+    % Styles
+    startstop/.style={rectangle, rounded corners, minimum width=2cm, minimum height=0.5cm, text centered, draw=black, fill=red!30},
+    process/.style={rectangle, minimum width=2cm, minimum height=0.5cm, text centered, draw=black, fill=blue!30},
+    decision/.style={diamond, minimum width=1.5cm, minimum height=0.5cm, text centered, draw=black, fill=green!30, inner sep=0pt},
+    arrow/.style={thick,->,>=stealth}
+]
+
+% Nodes
+\node [startstop] (start) {Start};
+\node [process, below=of start] (init) {Init};
+\node [startstop, below=of init] (loop) {Loop};
+\node [process, below=of loop] (queue) {Process Queue};
+\node [decision, below=of queue] (state) {State?};
+
+% Side states
+\node [process, left=of state, xshift=-2.5cm] (idle) {IDLE};
+\node [process, right=of state, xshift=3.5cm] (select) {SELECT};
+
+% Active state flow
+\node [decision, below=of state, yshift=-0.2cm] (win) {Win Seq?};
+\node [process, right=of win, xshift=1.0cm] (update) {Update Win};
+
+\node [process, below=of win, yshift=-0.2cm] (check) {Check Wins};
+\node [process, below=of check] (input) {Proc Input};
+\node [decision, below=of input] (valid) {Valid?};
+
+\node [process, below=of valid, yshift=-0.2cm] (move) {Make Move};
+\node [process, below=of move] (check2) {Check Win};
+\node [decision, below=of check2] (over) {Game Over?};
+
+\node [process, right=of over, xshift=2.5cm] (switch) {Switch};
+\node [process, left=of over, xshift=-1.0cm] (cont) {Continue};
+
+\node [process, below=of over, yshift=-0.5cm] (delay) {Delay};
+
+% Arrows
+\draw [arrow] (start) -- (init);
+\draw [arrow] (init) -- (loop);
+\draw [arrow] (loop) -- (queue);
+\draw [arrow] (queue) -- (state);
+
+% State branches
+\draw [arrow] (state) -- node[above] {IDLE} (idle);
+\draw [arrow] (state) -- node[above] {SELECT} (select);
+\draw [arrow] (state) -- node[right] {ACTIVE} (win);
+
+% Active flow
+\draw [arrow] (win) -- node[above] {Yes} (update);
+\draw [arrow] (win) -- node[right] {No} (check);
+
+\draw [arrow] (check) -- (input);
+\draw [arrow] (input) -- (valid);
+
+\draw [arrow] (valid) -- node[right] {Yes} (move);
+% Valid No -> Delay (route left, wide)
+\draw [arrow] (valid) -| ($(valid.west) + (-1.5cm,0)$) |- ($(delay.west) + (0,0.2cm)$);
+
+\draw [arrow] (move) -- (check2);
+\draw [arrow] (check2) -- (over);
+
+\draw [arrow] (over) -- node[above] {No} (switch);
+\draw [arrow] (over) -- node[above] {Yes} (cont);
+
+% Merging to Delay
+\draw [arrow] (idle) |- ($(delay.west) + (-0.5cm,0)$);
+\draw [arrow] (select) |- ($(delay.east) + (0.5cm,0)$);
+
+% Update Win -> Delay
+\draw [arrow] (update) |- ($(delay.east) + (0.2cm,0.2cm)$);
+
+% Switch -> Delay
+\draw [arrow] (switch) |- (delay);
+
+% Continue -> Delay
+\draw [arrow] (cont) |- (delay);
+
+% Loop back
+\draw [arrow] (delay) -- ++(0,-0.5) -| ($(loop.west) + (-5.5cm,0)$) -- (loop.west);
+
+\end{tikzpicture}
+\end{center}

@@ -1,0 +1,51 @@
+\begin{center}
+\begin{tikzpicture}[
+    node distance = 0.6cm and 0.6cm,
+    auto,
+    font=\footnotesize,
+    % Styles
+    startstop/.style={rectangle, rounded corners, minimum width=2.5cm, minimum height=0.8cm, text centered, draw=black, fill=red!30},
+    process/.style={rectangle, minimum width=2.5cm, minimum height=0.8cm, text centered, draw=black, fill=blue!30},
+    decision/.style={diamond, minimum width=2cm, minimum height=0.8cm, text centered, draw=black, fill=green!30, inner sep=0pt},
+    arrow/.style={thick,->,>=stealth}
+]
+
+% Nodes
+\node [startstop] (start) {Start};
+\node [process, below=of start] (init) {Init Hardware};
+\node [startstop, below=of init] (loop) {Main Loop};
+
+\node [process, below=of loop] (check_uart) {Check UART};
+\node [decision, below=of check_uart] (has_cmd) {Command?};
+\node [process, right=of has_cmd, xshift=0.5cm] (play) {Play Pattern};
+
+\node [process, below=of has_cmd, yshift=-0.5cm] (check_joy) {Process Joystick};
+\node [decision, below=of check_joy] (has_dir) {Direction?};
+\node [process, right=of has_dir, xshift=0.5cm] (send) {Send Command};
+
+\node [process, below=of has_dir, yshift=-0.5cm] (haptic) {Handle Haptic};
+\node [process, below=of haptic] (delay) {Delay 10ms};
+
+% Arrows
+\draw [arrow] (start) -- (init);
+\draw [arrow] (init) -- (loop);
+\draw [arrow] (loop) -- (check_uart);
+\draw [arrow] (check_uart) -- (has_cmd);
+
+% Command branch
+\draw [arrow] (has_cmd) -- node[anchor=south] {Yes} (play);
+\draw [arrow] (play) |- (check_joy);
+\draw [arrow] (has_cmd) -- node[anchor=east] {No} (check_joy);
+
+% Joystick branch
+\draw [arrow] (check_joy) -- (has_dir);
+\draw [arrow] (has_dir) -- node[anchor=south] {Yes} (send);
+\draw [arrow] (send) |- (haptic);
+\draw [arrow] (has_dir) -- node[anchor=east] {No} (haptic);
+
+% Loop back
+\draw [arrow] (haptic) -- (delay);
+\draw [arrow] (delay) -- ++(0,-0.8) -| ($(loop.west) + (-1cm,0)$) -- (loop.west);
+
+\end{tikzpicture}
+\end{center}

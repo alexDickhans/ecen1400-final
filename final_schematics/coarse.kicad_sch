@@ -1891,7 +1891,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 67.31) (xy 194.31 68.58)
+			(xy 190.5 96.52) (xy 190.5 97.79)
 		)
 		(stroke
 			(width 0)
@@ -1931,7 +1931,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 78.74) (xy 194.31 80.01)
+			(xy 190.5 107.95) (xy 190.5 109.22)
 		)
 		(stroke
 			(width 0)
@@ -1941,7 +1941,7 @@
 	)
 	(wire
 		(pts
-			(xy 167.64 73.66) (xy 176.53 73.66)
+			(xy 163.83 102.87) (xy 172.72 102.87)
 		)
 		(stroke
 			(width 0)
@@ -1991,7 +1991,7 @@
 	)
 	(wire
 		(pts
-			(xy 184.15 73.66) (xy 186.69 73.66)
+			(xy 180.34 102.87) (xy 182.88 102.87)
 		)
 		(stroke
 			(width 0)
@@ -2051,7 +2051,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 53.34) (xy 194.31 54.61)
+			(xy 190.5 82.55) (xy 190.5 83.82)
 		)
 		(stroke
 			(width 0)
@@ -2340,7 +2340,7 @@
 		(uuid "9100a40f-dc5c-499a-a21e-f3bae7d034bb")
 	)
 	(label "HAPTIC"
-		(at 167.64 73.66 0)
+		(at 163.83 102.87 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2963,7 +2963,7 @@
 	)
 	(symbol
 		(lib_id "power:+5V")
-		(at 194.31 53.34 0)
+		(at 190.5 82.55 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2972,7 +2972,7 @@
 		(fields_autoplaced yes)
 		(uuid "809dcdbe-cc20-4d75-81ca-b14f223f0878")
 		(property "Reference" "#PWR023"
-			(at 194.31 57.15 0)
+			(at 190.5 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2981,7 +2981,7 @@
 			)
 		)
 		(property "Value" "+5V"
-			(at 194.31 48.26 0)
+			(at 190.5 77.47 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2989,7 +2989,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 53.34 0)
+			(at 190.5 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2998,7 +2998,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 53.34 0)
+			(at 190.5 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3007,7 +3007,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 194.31 53.34 0)
+			(at 190.5 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3098,7 +3098,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 194.31 80.01 0)
+		(at 190.5 109.22 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3107,7 +3107,7 @@
 		(fields_autoplaced yes)
 		(uuid "8e641329-8744-42c0-97a9-bd6c497b23dc")
 		(property "Reference" "#PWR022"
-			(at 194.31 86.36 0)
+			(at 190.5 115.57 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3116,7 +3116,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 194.31 85.09 0)
+			(at 190.5 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3124,7 +3124,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 80.01 0)
+			(at 190.5 109.22 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3133,7 +3133,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 80.01 0)
+			(at 190.5 109.22 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3142,7 +3142,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 194.31 80.01 0)
+			(at 190.5 109.22 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3164,7 +3164,7 @@
 	)
 	(symbol
 		(lib_id "Simulation_SPICE:NPN")
-		(at 191.77 73.66 0)
+		(at 187.96 102.87 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3173,7 +3173,7 @@
 		(fields_autoplaced yes)
 		(uuid "9ac29cc0-a97d-4add-b801-ef5efeb6fb0f")
 		(property "Reference" "Q2"
-			(at 196.85 72.3899 0)
+			(at 193.04 101.5999 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3182,7 +3182,7 @@
 			)
 		)
 		(property "Value" "NPN"
-			(at 196.85 74.9299 0)
+			(at 193.04 104.1399 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3191,7 +3191,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 255.27 73.66 0)
+			(at 251.46 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3200,7 +3200,7 @@
 			)
 		)
 		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
-			(at 255.27 73.66 0)
+			(at 251.46 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3209,7 +3209,7 @@
 			)
 		)
 		(property "Description" "Bipolar transistor symbol for simulation only, substrate tied to the emitter"
-			(at 191.77 73.66 0)
+			(at 187.96 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3218,7 +3218,7 @@
 			)
 		)
 		(property "Sim.Device" "NPN"
-			(at 191.77 73.66 0)
+			(at 187.96 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3227,7 +3227,7 @@
 			)
 		)
 		(property "Sim.Type" "GUMMELPOON"
-			(at 191.77 73.66 0)
+			(at 187.96 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3236,7 +3236,7 @@
 			)
 		)
 		(property "Sim.Pins" "1=C 2=B 3=E"
-			(at 191.77 73.66 0)
+			(at 187.96 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3264,7 +3264,7 @@
 	)
 	(symbol
 		(lib_id "Motor:Motor_DC")
-		(at 194.31 59.69 0)
+		(at 190.5 88.9 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3273,7 +3273,7 @@
 		(fields_autoplaced yes)
 		(uuid "ac59a6b3-cb29-46fc-a18b-9939dfa38c29")
 		(property "Reference" "M2"
-			(at 199.39 60.9599 0)
+			(at 195.58 90.1699 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3282,7 +3282,7 @@
 			)
 		)
 		(property "Value" "Motor_DC"
-			(at 199.39 63.4999 0)
+			(at 195.58 92.7099 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3291,7 +3291,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 61.976 0)
+			(at 190.5 91.186 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3300,7 +3300,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 194.31 61.976 0)
+			(at 190.5 91.186 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3309,7 +3309,7 @@
 			)
 		)
 		(property "Description" "DC Motor"
-			(at 194.31 59.69 0)
+			(at 190.5 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3403,7 +3403,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 180.34 73.66 90)
+		(at 176.53 102.87 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3412,7 +3412,7 @@
 		(fields_autoplaced yes)
 		(uuid "bba4f3fe-0aca-40c6-b4cb-2ce1dd76f8ce")
 		(property "Reference" "R2"
-			(at 180.34 67.31 90)
+			(at 176.53 96.52 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3420,7 +3420,7 @@
 			)
 		)
 		(property "Value" "330"
-			(at 180.34 69.85 90)
+			(at 176.53 99.06 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3428,7 +3428,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 180.34 75.438 90)
+			(at 176.53 104.648 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3437,7 +3437,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 180.34 73.66 0)
+			(at 176.53 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3446,7 +3446,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 180.34 73.66 0)
+			(at 176.53 102.87 0)
 			(effects
 				(font
 					(size 1.27 1.27)
