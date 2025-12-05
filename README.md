@@ -2,9 +2,7 @@
 
 A physical implementation of multiple board games (Gomoku and Connect 4) using Arduino microcontrollers and servo motors, featuring dual input controllers with haptic feedback and game mode selection.
 
-## 📄 Project Final Report
-
-
+## 📄 [Project Final Report](/final-report.pdf)
 
 ## 🎮 Project Overview
 
